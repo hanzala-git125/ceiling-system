@@ -18,6 +18,8 @@ import { SupplierLedgerEntry } from '../../src/models/SupplierLedgerEntry';
 import { Sale } from '../../src/models/Sale';
 import { Payment } from '../../src/models/Payment';
 import { PanniType } from '../../src/models/PanniType';
+import { HdPaperType } from '../../src/models/HdPaperType';
+import { TCross } from '../../src/models/TCross';
 import { Operator } from '../../src/models/Operator';
 import { LabourLedgerEntry } from '../../src/models/LabourLedgerEntry';
 
@@ -39,6 +41,8 @@ const KEYS = {
   SALES: 'factory_erp_sales',
   PAYMENTS: 'factory_erp_payments',
   PANNI_TYPES: 'factory_erp_panni_types',
+  TCROSS_TYPES: 'factory_erp_tcross_types',
+  HD_PAPER_TYPES: 'factory_erp_hd_paper_types',
   OPERATORS: 'factory_erp_operators',
   LABOUR_LEDGER: 'factory_erp_labour_ledger',
 };
@@ -61,7 +65,9 @@ const MODEL_MAP: Record<string, any> = {
   [KEYS.SALES]: Sale,
   [KEYS.PAYMENTS]: Payment,
   [KEYS.PANNI_TYPES]: PanniType,
+  [KEYS.HD_PAPER_TYPES]: HdPaperType,
   [KEYS.OPERATORS]: Operator,
+  [KEYS.TCROSS_TYPES]: TCross,
   [KEYS.LABOUR_LEDGER]: LabourLedgerEntry,
 };
 

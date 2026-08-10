@@ -367,25 +367,34 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
               <div>
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">T Cross (optional) - Feet</label>
                 <div className="grid grid-cols-3 gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    value={tCrossFeet}
-                    onChange={(e) => setTCrossFeet(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
-                    placeholder="Feet"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={tCrossRate}
-                    onChange={(e) => setTCrossRate(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
-                    placeholder="Rate / ft"
-                  />
-                  <div className="p-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center">
-                    <span className="font-mono font-extrabold text-indigo-700">Rs. {(tCrossFeet * tCrossRate).toFixed(2)}</span>
+                  <div>
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">Length (ft)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={tCrossFeet}
+                      onChange={(e) => setTCrossFeet(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
+                      placeholder="Feet"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">Rate per ft (Rs)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={tCrossRate}
+                      onChange={(e) => setTCrossRate(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
+                      placeholder="Rate / ft"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">Amount (Rs)</label>
+                    <div className="p-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center">
+                      <span className="font-mono font-extrabold text-indigo-700">Rs. {(tCrossFeet * tCrossRate).toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
