@@ -152,6 +152,17 @@ export interface PanniType {
   createdAt: string;
 }
 
+export interface TCross {
+  id: string;
+  name: string;
+  unit: string; // feet
+  quantity: number; // in feet
+  costPerUnit: number; // cost per foot in Rupees
+  minThreshold: number;
+  conversionFactor: number;
+  createdAt: string;
+}
+
 export interface HdPaperType {
   id: string;
   name: string;
@@ -215,6 +226,10 @@ export interface Sale {
   paidAmount?: number;
   dueAmount?: number;
   status?: 'Paid' | 'Partial' | 'Unpaid';
+  // Optional T Cross sale details (if sold together with plates)
+  tCrossFeet?: number; // feet sold
+  tCrossRate?: number; // rate per foot charged
+  tCrossAmount?: number; // computed amount for tCrossFeet * tCrossRate
 }
 
 export interface Payment {

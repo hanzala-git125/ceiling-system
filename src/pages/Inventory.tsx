@@ -16,8 +16,8 @@ import {
   ChevronRight,
   Boxes
 } from 'lucide-react';
-import { db, adjustMaterialStock, getConversionLabel, addSupplierLedgerEntry, refreshSuppliersFromApi, refreshHdPaperTypesFromApi, ensureSupplierMaterialAssociation, getTodayStr } from '../utils/api';
-import { RawMaterial, InventoryTransaction, Supplier, PanniType, HdPaperType } from '../types';
+import { db, adjustMaterialStock, getConversionLabel, addSupplierLedgerEntry, refreshSuppliersFromApi, refreshHdPaperTypesFromApi, refreshTCrossesFromApi, ensureSupplierMaterialAssociation, getTodayStr } from '../utils/api';
+import { RawMaterial, InventoryTransaction, Supplier, PanniType, HdPaperType, TCross } from '../types';
 import { AppLanguage, getLanguageText } from '../utils/i18n';
 import InventoryHdPaperModals from './InventoryHdPaperModals';
 
@@ -37,18 +37,23 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
   const [showRestockModal, setShowRestockModal] = useState(false);
   const [showPanniTypeModal, setShowPanniTypeModal] = useState(false);
+  const [showTCrossTypeModal, setShowTCrossTypeModal] = useState(false);
   const [showPanniRestockModal, setShowPanniRestockModal] = useState(false);
+  const [showTCrossRestockModal, setShowTCrossRestockModal] = useState(false);
   const [showHdPaperTypeModal, setShowHdPaperTypeModal] = useState(false);
   const [showHdPaperRestockModal, setShowHdPaperRestockModal] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<RawMaterial | null>(null);
   const [selectedPanniType, setSelectedPanniType] = useState<PanniType | null>(null);
   const [selectedHdPaperType, setSelectedHdPaperType] = useState<HdPaperType | null>(null);
+  const [selectedTCross, setSelectedTCross] = useState<TCross | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>(db.getSuppliers());
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
   const [panniTypes, setPanniTypes] = useState<PanniType[]>(db.getPanniTypes());
   const [hdPaperTypes, setHdPaperTypes] = useState<HdPaperType[]>(db.getHdPaperTypes());
+  const [tCrossTypes, setTCrossTypes] = useState<TCross[]>(db.getTCrosses ? db.getTCrosses() : []);
   const [expandedPanni, setExpandedPanni] = useState(true);
   const [expandedHdPaper, setExpandedHdPaper] = useState(true);
+  const [expandedTCross, setExpandedTCross] = useState(true);
 
   // New Material form state
   const [newMatName, setNewMatName] = useState('');
@@ -91,6 +96,19 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   const [hdPaperRestockCost, setHdPaperRestockCost] = useState(0);
   const [hdPaperRestockDate, setHdPaperRestockDate] = useState(getTodayStr());
   const [hdPaperRestockNotes, setHdPaperRestockNotes] = useState('');
+
+  // T Cross form state
+  const [newTCrossName, setNewTCrossName] = useState('T Cross');
+  const [newTCrossUnit, setNewTCrossUnit] = useState('feet');
+  const [newTCrossConversionFactor, setNewTCrossConversionFactor] = useState(1);
+  const [newTCrossQuantity, setNewTCrossQuantity] = useState(0);
+  const [newTCrossCost, setNewTCrossCost] = useState(0);
+  const [newTCrossThreshold, setNewTCrossThreshold] = useState(0);
+  const [editingTCross, setEditingTCross] = useState<TCross | null>(null);
+  const [tCrossRestockQty, setTCrossRestockQty] = useState(0);
+  const [tCrossRestockCost, setTCrossRestockCost] = useState(0);
+  const [tCrossRestockDate, setTCrossRestockDate] = useState(getTodayStr());
+  const [tCrossRestockNotes, setTCrossRestockNotes] = useState('');
 
   // Notifications/Toasts helper
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -143,6 +161,30 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
         setHdPaperTypes(apiTypes);
       }
     });
+    // Load T Cross types from local DB or API
+    const existingTCross = (db.getTCrosses && db.getTCrosses()) || [];
+    if (existingTCross.length === 0) {
+      const defaultTCross: TCross = {
+        id: 'tcross_' + Math.random().toString(36).substr(2, 9),
+        name: 'T Cross',
+        unit: 'feet',
+        quantity: 0,
+        costPerUnit: 0,
+        minThreshold: 0,
+        conversionFactor: 1,
+        createdAt: getTodayStr(),
+      };
+      const persisted = db.saveTCrosses ? db.saveTCrosses([defaultTCross]) : [defaultTCross];
+      setTCrossTypes(persisted);
+    } else {
+      setTCrossTypes(existingTCross);
+    }
+
+    void refreshTCrossesFromApi().then((apiItems) => {
+      if (apiItems.length > 0) {
+        setTCrossTypes(apiItems);
+      }
+    });
   }, []);
 
   const getSuggestedConversionFactor = (unit: string, name: string) => {
@@ -192,9 +234,25 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
     setNewHdPaperTypeThreshold(100);
   };
 
+  const resetTCrossForm = () => {
+    setEditingTCross(null);
+    setNewTCrossName('T Cross');
+    setNewTCrossUnit('feet');
+    setNewTCrossConversionFactor(1);
+    setNewTCrossQuantity(0);
+    setNewTCrossCost(0);
+    setNewTCrossThreshold(0);
+  };
+
   const persistHdPaperTypes = (next: HdPaperType[]) => {
     const persisted = db.saveHdPaperTypes(next);
     setHdPaperTypes(persisted);
+    return persisted;
+  };
+
+  const persistTCrossTypes = (next: TCross[]) => {
+    const persisted = db.saveTCrosses ? db.saveTCrosses(next) : next;
+    setTCrossTypes(persisted);
     return persisted;
   };
 
@@ -286,6 +344,44 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
     showToast('success', editingHdPaperType ? 'HD paper type updated.' : 'HD paper type created.');
   };
 
+  const handleCreateOrUpdateTCross = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTCrossName.trim()) return;
+
+    const normalizedName = newTCrossName.trim();
+    const duplicate = tCrossTypes.find((item) => item.id !== editingTCross?.id && item.name.toLowerCase() === normalizedName.toLowerCase());
+    if (duplicate) {
+      showToast('error', 'A T Cross entry with this name already exists.');
+      return;
+    }
+
+    const next = editingTCross
+      ? tCrossTypes.map((item) => item.id === editingTCross.id ? {
+          ...item,
+          name: normalizedName,
+          unit: newTCrossUnit,
+          quantity: editingTCross.quantity + newTCrossQuantity,
+          costPerUnit: newTCrossCost > 0 ? newTCrossCost : item.costPerUnit,
+          minThreshold: newTCrossThreshold,
+          conversionFactor: newTCrossConversionFactor > 0 ? newTCrossConversionFactor : item.conversionFactor,
+        } : item)
+      : [...tCrossTypes, {
+          id: 'tcross_' + Math.random().toString(36).substr(2, 9),
+          name: normalizedName,
+          unit: newTCrossUnit,
+          quantity: newTCrossQuantity,
+          costPerUnit: newTCrossCost,
+          minThreshold: newTCrossThreshold,
+          conversionFactor: newTCrossConversionFactor > 0 ? newTCrossConversionFactor : 1,
+          createdAt: getTodayStr(),
+        }];
+
+    persistTCrossTypes(next);
+    resetTCrossForm();
+    setShowTCrossTypeModal(false);
+    showToast('success', editingTCross ? 'T Cross updated.' : 'T Cross created.');
+  };
+
   const handleDeletePanniType = (id: string, name: string) => {
     if (confirm(`Delete ${name}? This will remove the panni type from the inventory.`)) {
       const remaining = panniTypes.filter((item) => item.id !== id);
@@ -323,6 +419,27 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
         }]);
       } else {
         persistHdPaperTypes(remaining);
+      }
+      showToast('success', `${name} deleted.`);
+    }
+  };
+
+  const handleDeleteTCross = (id: string, name: string) => {
+    if (confirm(`Delete ${name}? This will remove the T Cross entry from the inventory.`)) {
+      const remaining = tCrossTypes.filter((item) => item.id !== id);
+      if (remaining.length === 0) {
+        persistTCrossTypes([{
+          id: 'tcross_' + Math.random().toString(36).substr(2, 9),
+          name: 'T Cross',
+          unit: 'feet',
+          quantity: 0,
+          costPerUnit: 0,
+          minThreshold: 0,
+          conversionFactor: 1,
+          createdAt: getTodayStr(),
+        }]);
+      } else {
+        persistTCrossTypes(remaining);
       }
       showToast('success', `${name} deleted.`);
     }
@@ -366,6 +483,26 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
     setHdPaperRestockNotes('');
     setShowHdPaperRestockModal(false);
     showToast('success', `Stock added to ${selectedHdPaperType.name}.`);
+  };
+
+  const handleRestockTCross = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTCross || tCrossRestockQty <= 0) return;
+
+    const next = tCrossTypes.map((item) => item.id === selectedTCross.id ? {
+      ...item,
+      quantity: item.quantity + tCrossRestockQty,
+      costPerUnit: tCrossRestockCost > 0 ? calculateAverageCostPerUnit(item.quantity, item.costPerUnit, tCrossRestockQty, tCrossRestockCost) : item.costPerUnit,
+    } : item);
+
+    persistTCrossTypes(next);
+    setSelectedTCross(null);
+    setTCrossRestockQty(0);
+    setTCrossRestockCost(0);
+    setTCrossRestockDate(getTodayStr());
+    setTCrossRestockNotes('');
+    setShowTCrossRestockModal(false);
+    showToast('success', `Stock added to ${selectedTCross.name}.`);
   };
 
   // Add a brand new raw material type
@@ -571,6 +708,13 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
             Manage Panni Types
           </button>
           <button
+            onClick={() => setShowTCrossTypeModal(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
+          >
+            <Boxes size={14} />
+            Manage T Cross
+          </button>
+          <button
             onClick={() => setShowHdPaperTypeModal(true)}
             className="bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
           >
@@ -702,6 +846,100 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                                 onClick={() => handleDeletePanniType(panniType.id, panniType.name)}
                                 className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
                                 title="Delete Panni Type"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    <tr className={`hover:bg-slate-50/50 transition-colors ${false ? 'bg-emerald-50/20' : ''}`}>
+                      <td className="py-3 px-2 font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedTCross((value) => !value)}
+                          className="flex items-center gap-2 text-left"
+                        >
+                          {expandedTCross ? <ChevronDown size={20} className="text-slate-500" /> : <ChevronRight size={20} className="text-slate-500" />}
+                          <div>
+                            <p className="text-slate-800">T Cross</p>
+                            <p className="text-[9px] text-slate-400 font-medium mt-0.5">Frame material measured in feet</p>
+                          </div>
+                        </button>
+                      </td>
+                      <td className="py-3 px-2 text-right font-mono font-bold">
+                        <span className={'text-slate-800'}>{tCrossTypes.reduce((s, it) => s + it.quantity, 0).toLocaleString()}</span>{' '}
+                        <span className="text-[10px] font-normal text-slate-400">feet</span>
+                      </td>
+                      <td className="py-3 px-2 text-right font-mono text-slate-500">—</td>
+                      <td className="py-3 px-2 text-right font-mono font-semibold text-slate-800">—</td>
+                      <td className="py-3 px-2 text-center font-mono text-slate-400">—</td>
+                      <td className="py-3 px-2">
+                        <div className="flex items-center justify-end">
+                          <button
+                            onClick={() => setShowTCrossTypeModal(true)}
+                            className="px-2 py-1 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all cursor-pointer"
+                          >
+                            Manage
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedTCross && tCrossTypes.map((tc) => {
+                      const isLow = tc.quantity <= tc.minThreshold;
+                      const stockValue = tc.quantity * tc.costPerUnit;
+                      return (
+                        <tr key={tc.id} className={`bg-slate-50/60 hover:bg-slate-100/70 transition-colors ${isLow ? 'bg-emerald-50/40' : ''}`}>
+                          <td className="py-2.5 px-6 font-semibold">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-1.5 h-1.5 rounded-full ${isLow ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                              <div>
+                                <p className="text-slate-800">{tc.name}</p>
+                                <p className="text-[9px] text-slate-400 font-medium mt-0.5">{getConversionLabel(tc.unit)}: {tc.conversionFactor}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-2 text-right font-mono font-bold">
+                            <span className={isLow ? 'text-emerald-600 font-extrabold' : 'text-slate-800'}>{tc.quantity.toLocaleString()}</span>{' '}
+                            <span className="text-[10px] font-normal text-slate-400">{tc.unit}</span>
+                          </td>
+                          <td className="py-2.5 px-2 text-right font-mono text-slate-500">Rs. {tc.costPerUnit.toFixed(2)}</td>
+                          <td className="py-2.5 px-2 text-right font-mono font-semibold text-slate-800">Rs. {Math.round(stockValue).toLocaleString()}</td>
+                          <td className="py-2.5 px-2 text-center font-mono text-slate-400">{tc.minThreshold} {tc.unit}</td>
+                          <td className="py-2.5 px-2">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setSelectedTCross(tc);
+                                  setTCrossRestockQty(0);
+                                  setTCrossRestockCost(0);
+                                  setShowTCrossRestockModal(true);
+                                }}
+                                className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer"
+                              >
+                                Add Stock
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingTCross(tc);
+                                  setNewTCrossName(tc.name);
+                                  setNewTCrossUnit(tc.unit);
+                                  setNewTCrossConversionFactor(tc.conversionFactor);
+                                  setNewTCrossQuantity(0);
+                                  setNewTCrossCost(tc.costPerUnit);
+                                  setNewTCrossThreshold(tc.minThreshold);
+                                  setShowTCrossTypeModal(true);
+                                }}
+                                className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-50"
+                                title="Edit T Cross"
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTCross(tc.id, tc.name)}
+                                className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                title="Delete T Cross"
                               >
                                 <Trash2 size={12} />
                               </button>
@@ -1089,6 +1327,157 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
         </div>
       )}
 
+        {showTCrossTypeModal && (
+          <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-lg border border-slate-100 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
+                <h3 className="font-display font-bold text-slate-800 text-sm flex items-center gap-2">
+                  <Boxes size={16} className="text-emerald-600" />
+                  Manage T Cross
+                </h3>
+                <button onClick={() => { setShowTCrossTypeModal(false); resetTCrossForm(); }} className="text-slate-400 hover:text-slate-600">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="p-5 space-y-4 text-xs">
+                <form onSubmit={handleCreateOrUpdateTCross} className="space-y-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-slate-700">{editingTCross ? 'Update T Cross' : 'Add T Cross'}</h4>
+                    {editingTCross && (
+                      <button type="button" onClick={resetTCrossForm} className="text-[10px] font-semibold text-slate-500">Cancel edit</button>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={newTCrossName}
+                      onChange={(e) => setNewTCrossName(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Stock Unit</label>
+                      <select
+                        value={newTCrossUnit}
+                        onChange={(e) => setNewTCrossUnit(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800"
+                      >
+                        <option value="feet">feet</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Min. Alert Threshold</label>
+                      <input
+                        type="number"
+                        min="0"
+                        required
+                        value={newTCrossThreshold}
+                        onChange={(e) => setNewTCrossThreshold(parseInt(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Conversion Factor</label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        required
+                        value={newTCrossConversionFactor}
+                        onChange={(e) => setNewTCrossConversionFactor(parseFloat(e.target.value) || 1)}
+                        className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Opening Stock Qty</label>
+                      <input
+                        type="number"
+                        min="0"
+                        required
+                        value={newTCrossQuantity}
+                        onChange={(e) => setNewTCrossQuantity(parseInt(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Cost Per Unit (Rs)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      value={newTCrossCost}
+                      onChange={(e) => setNewTCrossCost(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
+                    />
+                  </div>
+                  <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-xs tracking-wider uppercase transition-all cursor-pointer">
+                    {editingTCross ? 'Save T Cross' : 'Create T Cross'}
+                  </button>
+                </form>
+
+                <div className="rounded-xl border border-slate-100 p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-slate-700">Existing T Cross Entries</h4>
+                    <span className="text-[10px] text-slate-400">{tCrossTypes.length} listed</span>
+                  </div>
+                  <div className="space-y-2">
+                    {tCrossTypes.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between rounded-lg border border-slate-100 bg-white px-3 py-2">
+                        <div>
+                          <p className="font-semibold text-slate-800">{item.name}</p>
+                          <p className="text-[10px] text-slate-400">{item.quantity.toLocaleString()} {item.unit} • Min {item.minThreshold} {item.unit}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => {
+                              setSelectedTCross(item);
+                              setTCrossRestockQty(0);
+                              setTCrossRestockCost(0);
+                              setShowTCrossRestockModal(true);
+                            }}
+                            className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer"
+                          >
+                            Add Stock
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingTCross(item);
+                              setNewTCrossName(item.name);
+                              setNewTCrossUnit(item.unit);
+                              setNewTCrossConversionFactor(item.conversionFactor);
+                              setNewTCrossQuantity(0);
+                              setNewTCrossCost(item.costPerUnit);
+                              setNewTCrossThreshold(item.minThreshold);
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-50"
+                            title="Edit"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTCross(item.id, item.name)}
+                            className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
+                            title="Delete"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       {showAddMaterialModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-lg border border-slate-100 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-150">
@@ -1346,6 +1735,75 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                 />
               </div>
               <button type="submit" className="w-full mt-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-lg text-xs tracking-wider uppercase transition-all cursor-pointer">
+                Add Stock
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showTCrossRestockModal && selectedTCross && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg border border-slate-100 w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
+              <h3 className="font-display font-bold text-slate-800 text-sm flex items-center gap-2">
+                <Plus size={16} className="text-emerald-600" />
+                Add T Cross Stock
+              </h3>
+              <button onClick={() => { setShowTCrossRestockModal(false); setSelectedTCross(null); }} className="text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleRestockTCross} className="p-5 space-y-4 text-xs">
+              <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/50">
+                <p className="text-slate-700 font-medium">Selected T Cross: <span className="font-bold text-slate-900">{selectedTCross.name}</span></p>
+                <p className="text-slate-400 mt-1 font-semibold uppercase text-[10px]">Current Quantity: <span className="font-mono text-emerald-700 font-bold">{selectedTCross.quantity} {selectedTCross.unit}</span></p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Restock Qty ({selectedTCross.unit})</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={tCrossRestockQty}
+                    onChange={(e) => setTCrossRestockQty(parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Inward Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={tCrossRestockDate}
+                    onChange={(e) => setTCrossRestockDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Total Procurement Cost (Rs)</label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={tCrossRestockCost}
+                  onChange={(e) => setTCrossRestockCost(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Restock Notes / Memo</label>
+                <input
+                  type="text"
+                  value={tCrossRestockNotes}
+                  onChange={(e) => setTCrossRestockNotes(e.target.value)}
+                  placeholder="e.g. Purchased new batch"
+                  className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800"
+                />
+              </div>
+              <button type="submit" className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-xs tracking-wider uppercase transition-all cursor-pointer">
                 Add Stock
               </button>
             </form>

@@ -16,6 +16,7 @@ import {
   Sale,
   Payment,
   PanniType,
+  TCross,
   HdPaperType,
   Operator,
   LabourLedgerEntry,
@@ -50,6 +51,7 @@ export const KEYS = {
   PAYMENTS: 'factory_erp_payments',
   PANNI_TYPES: 'factory_erp_panni_types',
   HD_PAPER_TYPES: 'factory_erp_hd_paper_types',
+  TCROSS_TYPES: 'factory_erp_tcross_types',
   OPERATORS: 'factory_erp_operators',
   LABOUR_LEDGER: 'factory_erp_labour_ledger',
 };
@@ -206,6 +208,53 @@ export async function refreshPanniTypesFromApi(): Promise<PanniType[]> {
   } catch (error) {
     console.error('Failed to refresh panni types from API:', error);
     return getData<PanniType>(KEYS.PANNI_TYPES);
+  }
+}
+
+export async function refreshTCrossesFromApi(): Promise<TCross[]> {
+  if (typeof window === 'undefined') {
+    return getData<TCross>(KEYS.TCROSS_TYPES);
+  }
+
+  try {
+    const response = await fetch('/api/t-cross', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error('Unable to load T Cross types from the API');
+    }
+
+    const payload = await response.json();
+    const items = Array.isArray(payload) ? payload : [];
+    const storage = getStorage();
+    if (storage) {
+      storage.setItem(KEYS.TCROSS_TYPES, JSON.stringify(items));
+    }
+    return items;
+  } catch (error) {
+    console.error('Failed to refresh T Cross types from API:', error);
+    return getData<TCross>(KEYS.TCROSS_TYPES);
+  }
+}
+
+export async function syncTCrossesToApi(items: TCross[]): Promise<TCross[]> {
+  if (typeof window === 'undefined') {
+    return items;
+  }
+
+  try {
+    const response = await fetch('/api/t-cross', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(items),
+    });
+
+    if (!response.ok) {
+      throw new Error('Unable to sync T Cross types to the API');
+    }
+
+    return items;
+  } catch (error) {
+    console.error('Failed to sync T Cross types to API:', error);
+    return items;
   }
 }
 
@@ -528,6 +577,12 @@ export const db = {
   saveHdPaperTypes: (data: HdPaperType[]) => {
     saveData<HdPaperType>(KEYS.HD_PAPER_TYPES, data);
     void syncHdPaperTypesToApi(data);
+    return data;
+  },
+  getTCrosses: () => getData<TCross>(KEYS.TCROSS_TYPES),
+  saveTCrosses: (data: TCross[]) => {
+    saveData<TCross>(KEYS.TCROSS_TYPES, data);
+    void syncTCrossesToApi(data);
     return data;
   },
 };

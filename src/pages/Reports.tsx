@@ -76,6 +76,7 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
   const suppliers = db.getSuppliers();
   const txs = db.getTransactions();
   const materials = db.getMaterials();
+  const tCrosses = db.getTCrosses ? db.getTCrosses() : [];
 
   const reportRange = useMemo(() => {
     if (reportScope === 'daily') {
@@ -164,6 +165,18 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
       return consumptionSum + Number(cons.calculatedAmount) * material.costPerUnit;
     }, 0);
   }, 0);
+
+  // T Cross metrics
+  const tCrossRemaining = tCrosses.reduce((s, t) => s + t.quantity, 0);
+  const tCrossSalesFeet = filteredSales.reduce((s, sale) => s + (sale.tCrossFeet || 0), 0);
+  const tCrossRevenue = filteredSales.reduce((s, sale) => s + (sale.tCrossAmount || 0), 0);
+  // Assume single T Cross type cost per unit if available
+  const tCrossCostPerUnit = tCrosses.length > 0 ? tCrosses[0].costPerUnit : 0;
+  const tCrossStockUsedCost = tCrossSalesFeet * tCrossCostPerUnit;
+  const tCrossProfit = tCrossRevenue - tCrossStockUsedCost;
+
+  // include T Cross stock used into overall stockUsedCost
+  const totalStockUsedCost = stockUsedCost + tCrossStockUsedCost;
 
   const remainingWet = Math.max(0, totalWetProduced - totalWetReceivedToDry);
   const remainingDry = Math.max(0, totalDryProduced - totalDryReceivedToFinal);
@@ -306,7 +319,7 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
           </div>
           <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg">
             <p className="text-[9px] text-rose-800 font-bold uppercase tracking-wider">Stock Cost Used</p>
-            <p className="font-mono text-sm font-extrabold text-rose-700 mt-1">{formatCurrency(stockUsedCost)}</p>
+            <p className="font-mono text-sm font-extrabold text-rose-700 mt-1">{formatCurrency(totalStockUsedCost)}</p>
           </div>
           <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
             <p className="text-[9px] text-amber-800 font-bold uppercase tracking-wider">Total Expenses</p>
@@ -323,6 +336,33 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
           <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
             <p className="text-[9px] text-slate-800 font-bold uppercase tracking-wider">Waste & Defects</p>
             <p className="font-mono text-sm font-extrabold text-slate-700 mt-1">{totalWasteQty.toLocaleString()} pcs</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Layers size={16} className="text-emerald-600" />
+              <h3 className="font-display font-bold text-slate-800 text-sm">T Cross Summary</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-2 rounded-lg bg-slate-50">
+                <p className="text-slate-400 uppercase">Remaining T Cross</p>
+                <p className="font-mono font-bold text-slate-800 mt-1">{tCrossRemaining.toLocaleString()} ft</p>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-50">
+                <p className="text-slate-400 uppercase">Feet Sold</p>
+                <p className="font-mono font-bold text-slate-800 mt-1">{tCrossSalesFeet.toLocaleString()} ft</p>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-50">
+                <p className="text-slate-400 uppercase">Revenue</p>
+                <p className="font-mono font-bold text-slate-800 mt-1">{formatCurrency(tCrossRevenue)}</p>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-50">
+                <p className="text-slate-400 uppercase">Profit (T Cross)</p>
+                <p className="font-mono font-bold text-slate-800 mt-1">{formatCurrency(tCrossProfit)}</p>
+              </div>
+            </div>
           </div>
         </div>
 

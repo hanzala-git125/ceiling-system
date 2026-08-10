@@ -26,6 +26,8 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
   const [customRate, setCustomRate] = useState<number>(15.30);
   const [quantity, setQuantity] = useState<number>(1000);
   const [discount, setDiscount] = useState<number>(0);
+  const [tCrossFeet, setTCrossFeet] = useState<number>(0);
+  const [tCrossRate, setTCrossRate] = useState<number>(0);
   const [notes, setNotes] = useState('');
 
   const [error, setError] = useState('');
@@ -43,7 +45,9 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
   };
 
   const calculatedTotalBill = customRate * quantity;
-  const calculatedGrandTotal = Math.max(0, calculatedTotalBill - discount);
+  const tCrossAmount = (tCrossFeet > 0 && tCrossRate > 0) ? tCrossFeet * tCrossRate : 0;
+  const calculatedTotalBillWithTCross = calculatedTotalBill + tCrossAmount;
+  const calculatedGrandTotal = Math.max(0, calculatedTotalBillWithTCross - discount);
 
   const handleCreateSale = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,18 +80,46 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
       productName: plateType,
       rate: customRate,
       quantity,
-      totalAmount: calculatedTotalBill,
+      totalAmount: calculatedTotalBillWithTCross,
       discount,
       grandTotal: calculatedGrandTotal,
       invoiceNumber,
       notes: notes.trim() || `Dispatched order for ${plateType}`,
       createdAt: getTodayStr(),
+      tCrossFeet: tCrossFeet > 0 ? tCrossFeet : undefined,
+      tCrossRate: tCrossRate > 0 ? tCrossRate : undefined,
+      tCrossAmount: tCrossAmount > 0 ? tCrossAmount : undefined,
     };
 
     // Save Sale record
     const updatedSales = [...sales, newSale];
     db.saveSales(updatedSales);
     setSales(updatedSales);
+
+    // If T Cross sold, deduct from T Cross inventory and record transaction
+    if (tCrossFeet > 0) {
+      const tcrosses = db.getTCrosses ? db.getTCrosses() : [];
+      const tcross = tcrosses.length > 0 ? tcrosses[0] : null;
+      if (tcross) {
+        const updated = tcrosses.map((t) => t.id === tcross.id ? { ...t, quantity: Math.max(0, t.quantity - tCrossFeet) } : t);
+        db.saveTCrosses ? db.saveTCrosses(updated) : null;
+
+        const txs = db.getTransactions();
+        const newTx = {
+          id: 'tx_' + Math.random().toString(36).substr(2, 9),
+          materialId: tcross.id,
+          materialName: tcross.name,
+          type: 'out',
+          quantity: tCrossFeet,
+          cost: tCrossAmount,
+          date,
+          notes: `Sold ${tCrossFeet} ${tcross.unit} with ${invoiceNumber}`,
+          unit: tcross.unit,
+        };
+        txs.push(newTx as any);
+        db.saveTransactions(txs);
+      }
+    }
 
     // Log to Customer Ledger (Debit increases account outstanding balance)
     addLedgerEntry(
@@ -108,6 +140,8 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
     setCustomRate(15.30);
     setQuantity(1000);
     setDiscount(0);
+    setTCrossFeet(0);
+    setTCrossRate(0);
     setNotes('');
 
     triggerToast(`Invoice ${invoiceNumber} created and dispatched.`);
@@ -330,6 +364,32 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">T Cross (optional) - Feet</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    value={tCrossFeet}
+                    onChange={(e) => setTCrossFeet(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
+                    placeholder="Feet"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={tCrossRate}
+                    onChange={(e) => setTCrossRate(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
+                    placeholder="Rate / ft"
+                  />
+                  <div className="p-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center">
+                    <span className="font-mono font-extrabold text-indigo-700">Rs. {(tCrossFeet * tCrossRate).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Discount Amount (Rs)</label>
@@ -448,6 +508,14 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                     <td className="py-3 text-right font-mono">Rs. {activeInvoiceSale.rate}</td>
                     <td className="py-3 text-right font-mono">Rs. {activeInvoiceSale.totalAmount.toLocaleString()}</td>
                   </tr>
+                  {activeInvoiceSale.tCrossAmount && activeInvoiceSale.tCrossFeet ? (
+                    <tr>
+                      <td className="py-3 font-semibold text-slate-800">{activeInvoiceSale.tCrossFeet} ft of T Cross</td>
+                      <td className="py-3 text-right font-mono">{activeInvoiceSale.tCrossFeet.toLocaleString()} ft</td>
+                      <td className="py-3 text-right font-mono">Rs. {activeInvoiceSale.tCrossRate}</td>
+                      <td className="py-3 text-right font-mono">Rs. {activeInvoiceSale.tCrossAmount?.toLocaleString()}</td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
 
