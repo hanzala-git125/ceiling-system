@@ -155,9 +155,20 @@ export interface PanniType {
 export interface TCross {
   id: string;
   name: string;
-  unit: string; // feet
-  quantity: number; // in feet
-  costPerUnit: number; // cost per foot in Rupees
+  unit: string;
+  quantity: number;
+  costPerUnit: number;
+  minThreshold: number;
+  conversionFactor: number;
+  createdAt: string;
+}
+
+export interface WallAngle {
+  id: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  costPerUnit: number;
   minThreshold: number;
   conversionFactor: number;
   createdAt: string;
@@ -230,6 +241,15 @@ export interface Sale {
   tCrossFeet?: number; // feet sold
   tCrossRate?: number; // rate per foot charged
   tCrossAmount?: number; // computed amount for tCrossFeet * tCrossRate
+  tCrossTypeId?: string;
+  tCrossTypeName?: string;
+  tCrossUnit?: string;
+  wallAnglePieces?: number;
+  wallAngleRate?: number;
+  wallAngleAmount?: number;
+  wallAngleId?: string;
+  wallAngleName?: string;
+  wallAngleUnit?: string;
 }
 
 export interface Payment {

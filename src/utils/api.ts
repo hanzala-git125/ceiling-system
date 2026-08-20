@@ -17,6 +17,7 @@ import {
   Payment,
   PanniType,
   TCross,
+  WallAngle,
   HdPaperType,
   Operator,
   LabourLedgerEntry,
@@ -52,9 +53,12 @@ export const KEYS = {
   PANNI_TYPES: 'factory_erp_panni_types',
   HD_PAPER_TYPES: 'factory_erp_hd_paper_types',
   TCROSS_TYPES: 'factory_erp_tcross_types',
+  WALL_ANGLE_TYPES: 'factory_erp_wall_angle_types',
   OPERATORS: 'factory_erp_operators',
   LABOUR_LEDGER: 'factory_erp_labour_ledger',
 };
+
+export const INVENTORY_UNITS = ['kg', 'g', 'grams', 'bags', 'rolls', 'rims', 'm', 'meters', 'feet', 'pieces'] as const;
 
 function getStorage(): Storage | null {
   if (typeof window === 'undefined' || !window.localStorage) {
@@ -256,6 +260,36 @@ export async function syncTCrossesToApi(items: TCross[]): Promise<TCross[]> {
     console.error('Failed to sync T Cross types to API:', error);
     return items;
   }
+}
+
+export async function refreshWallAnglesFromApi(): Promise<WallAngle[]> {
+  if (typeof window === 'undefined') return getData<WallAngle>(KEYS.WALL_ANGLE_TYPES);
+  try {
+    const response = await fetch('/api/wall-angle', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Unable to load Wall Angle items from the API');
+    const payload = await response.json();
+    const items = Array.isArray(payload) ? payload : [];
+    getStorage()?.setItem(KEYS.WALL_ANGLE_TYPES, JSON.stringify(items));
+    return items;
+  } catch (error) {
+    console.error('Failed to refresh Wall Angle items from API:', error);
+    return getData<WallAngle>(KEYS.WALL_ANGLE_TYPES);
+  }
+}
+
+export async function syncWallAnglesToApi(items: WallAngle[]): Promise<WallAngle[]> {
+  if (typeof window === 'undefined') return items;
+  try {
+    const response = await fetch('/api/wall-angle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(items),
+    });
+    if (!response.ok) throw new Error('Unable to sync Wall Angle items to the API');
+  } catch (error) {
+    console.error('Failed to sync Wall Angle items to API:', error);
+  }
+  return items;
 }
 
 export async function syncPanniTypesToApi(panniTypes: PanniType[]): Promise<PanniType[]> {
@@ -583,6 +617,12 @@ export const db = {
   saveTCrosses: (data: TCross[]) => {
     saveData<TCross>(KEYS.TCROSS_TYPES, data);
     void syncTCrossesToApi(data);
+    return data;
+  },
+  getWallAngles: () => getData<WallAngle>(KEYS.WALL_ANGLE_TYPES),
+  saveWallAngles: (data: WallAngle[]) => {
+    saveData<WallAngle>(KEYS.WALL_ANGLE_TYPES, data);
+    void syncWallAnglesToApi(data);
     return data;
   },
 };

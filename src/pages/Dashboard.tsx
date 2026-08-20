@@ -30,6 +30,8 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
   const waste = db.getWasteRecords();
   const expenses = db.getExpenses();
   const sales = db.getSales();
+  const tCrosses = db.getTCrosses ? db.getTCrosses() : [];
+  const wallAngles = db.getWallAngles ? db.getWallAngles() : [];
 
   const todayStr = getTodayStr();
 
@@ -57,6 +59,15 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
     .filter((e) => e.date === todayStr)
     .reduce((sum, item) => sum + item.amount, 0);
 
+  const tCrossCostToday = sales.filter((sale) => sale.date === todayStr).reduce((sum, sale) => {
+    const item = tCrosses.find((entry) => entry.id === sale.tCrossTypeId) || tCrosses.find((entry) => entry.name === sale.tCrossTypeName) || tCrosses[0];
+    return sum + (sale.tCrossFeet || 0) * (item?.costPerUnit || 0);
+  }, 0);
+  const wallAngleCostToday = sales.filter((sale) => sale.date === todayStr).reduce((sum, sale) => {
+    const item = wallAngles.find((entry) => entry.id === sale.wallAngleId) || wallAngles.find((entry) => entry.name === sale.wallAngleName) || wallAngles[0];
+    return sum + (sale.wallAnglePieces || 0) * (item?.costPerUnit || 0);
+  }, 0);
+
   const totalWasteToday = waste
     .filter((w) => w.date === todayStr)
     .reduce((sum, item) => sum + item.quantity, 0);
@@ -66,7 +77,7 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
   const remainingFinalStock = Math.max(0, finalProd.reduce((sum, item) => sum + item.finalPlatesProduced, 0) - sales.reduce((sum, item) => sum + item.quantity, 0));
 
   // Profit / Loss Summary: (All-time or Today? Let's do today first, and show cumulative monthly summary too!)
-  const netProfitToday = totalSalesToday - totalExpensesToday;
+  const netProfitToday = totalSalesToday - totalExpensesToday - tCrossCostToday - wallAngleCostToday;
 
   // Let's get past 7 days dates for trend charts
   const last7Days = Array.from({ length: 7 }, (_, i) => getTodayStr(-6 + i));

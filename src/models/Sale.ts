@@ -17,6 +17,18 @@ const SaleSchema = new mongoose.Schema({
   paidAmount: { type: Number },
   dueAmount: { type: Number },
   status: { type: String }
+  ,tCrossFeet: { type: Number }
+  ,tCrossRate: { type: Number }
+  ,tCrossAmount: { type: Number }
+  ,tCrossTypeId: { type: String }
+  ,tCrossTypeName: { type: String }
+  ,tCrossUnit: { type: String }
+  ,wallAnglePieces: { type: Number }
+  ,wallAngleRate: { type: Number }
+  ,wallAngleAmount: { type: Number }
+  ,wallAngleId: { type: String }
+  ,wallAngleName: { type: String }
+  ,wallAngleUnit: { type: String }
 }, { timestamps: true });
 
 export const Sale = mongoose.models.Sale || mongoose.model('Sale', SaleSchema);

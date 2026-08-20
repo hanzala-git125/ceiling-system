@@ -28,6 +28,10 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
   const [discount, setDiscount] = useState<number>(0);
   const [tCrossFeet, setTCrossFeet] = useState<number>(0);
   const [tCrossRate, setTCrossRate] = useState<number>(0);
+  const [tCrossTypeId, setTCrossTypeId] = useState('');
+  const [wallAnglePieces, setWallAnglePieces] = useState<number>(0);
+  const [wallAngleRate, setWallAngleRate] = useState<number>(0);
+  const [wallAngleId, setWallAngleId] = useState('');
   const [notes, setNotes] = useState('');
 
   const [error, setError] = useState('');
@@ -46,8 +50,13 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
 
   const calculatedTotalBill = customRate * quantity;
   const tCrossAmount = (tCrossFeet > 0 && tCrossRate > 0) ? tCrossFeet * tCrossRate : 0;
-  const calculatedTotalBillWithTCross = calculatedTotalBill + tCrossAmount;
-  const calculatedGrandTotal = Math.max(0, calculatedTotalBillWithTCross - discount);
+  const wallAngleAmount = (wallAnglePieces > 0 && wallAngleRate > 0) ? wallAnglePieces * wallAngleRate : 0;
+  const calculatedTotalBillWithAccessories = calculatedTotalBill + tCrossAmount + wallAngleAmount;
+  const calculatedGrandTotal = Math.max(0, calculatedTotalBillWithAccessories - discount);
+  const tCrosses = db.getTCrosses ? db.getTCrosses() : [];
+  const wallAngles = db.getWallAngles ? db.getWallAngles() : [];
+  const selectedTCross = tCrosses.find((item) => item.id === tCrossTypeId);
+  const selectedWallAngle = wallAngles.find((item) => item.id === wallAngleId);
 
   const handleCreateSale = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +74,14 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
       setError('Rate per plate must be greater than zero Rupees.');
       return;
     }
+    if (tCrossFeet > 0 && (!selectedTCross || tCrossRate <= 0)) {
+      setError('Select a T Cross type and enter a valid rate when selling T Cross.');
+      return;
+    }
+    if (wallAnglePieces > 0 && (!selectedWallAngle || wallAngleRate <= 0)) {
+      setError('Select a Wall Angle type and enter a valid rate when selling Wall Angle.');
+      return;
+    }
 
     const selectedCust = customers.find((c) => c.id === customerId);
     if (!selectedCust) return;
@@ -80,7 +97,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
       productName: plateType,
       rate: customRate,
       quantity,
-      totalAmount: calculatedTotalBillWithTCross,
+      totalAmount: calculatedTotalBillWithAccessories,
       discount,
       grandTotal: calculatedGrandTotal,
       invoiceNumber,
@@ -89,6 +106,15 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
       tCrossFeet: tCrossFeet > 0 ? tCrossFeet : undefined,
       tCrossRate: tCrossRate > 0 ? tCrossRate : undefined,
       tCrossAmount: tCrossAmount > 0 ? tCrossAmount : undefined,
+      tCrossTypeId: selectedTCross?.id,
+      tCrossTypeName: selectedTCross?.name,
+      tCrossUnit: selectedTCross?.unit,
+      wallAnglePieces: wallAnglePieces > 0 ? wallAnglePieces : undefined,
+      wallAngleRate: wallAngleRate > 0 ? wallAngleRate : undefined,
+      wallAngleAmount: wallAngleAmount > 0 ? wallAngleAmount : undefined,
+      wallAngleId: selectedWallAngle?.id,
+      wallAngleName: selectedWallAngle?.name,
+      wallAngleUnit: selectedWallAngle?.unit,
     };
 
     // Save Sale record
@@ -99,7 +125,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
     // If T Cross sold, deduct from T Cross inventory and record transaction
     if (tCrossFeet > 0) {
       const tcrosses = db.getTCrosses ? db.getTCrosses() : [];
-      const tcross = tcrosses.length > 0 ? tcrosses[0] : null;
+      const tcross = tcrosses.find((item) => item.id === tCrossTypeId) || null;
       if (tcross) {
         const updated = tcrosses.map((t) => t.id === tcross.id ? { ...t, quantity: Math.max(0, t.quantity - tCrossFeet) } : t);
         db.saveTCrosses ? db.saveTCrosses(updated) : null;
@@ -121,6 +147,14 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
       }
     }
 
+    if (wallAnglePieces > 0 && selectedWallAngle) {
+      const updated = wallAngles.map((item) => item.id === selectedWallAngle.id ? { ...item, quantity: Math.max(0, item.quantity - wallAnglePieces) } : item);
+      db.saveWallAngles(updated);
+      const txs = db.getTransactions();
+      txs.push({ id: 'tx_' + Math.random().toString(36).substr(2, 9), materialId: selectedWallAngle.id, materialName: selectedWallAngle.name, type: 'out', quantity: wallAnglePieces, cost: wallAngleAmount, date, notes: `Sold ${wallAnglePieces} ${selectedWallAngle.unit} with ${invoiceNumber}`, unit: selectedWallAngle.unit });
+      db.saveTransactions(txs);
+    }
+
     // Log to Customer Ledger (Debit increases account outstanding balance)
     addLedgerEntry(
       customerId,
@@ -129,7 +163,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
       saleId,
       calculatedGrandTotal, // debit amount
       0, // credit amount
-      `Dispatched invoice: ${invoiceNumber} (${quantity} × Rs. ${customRate} ${plateType})`
+      `Dispatched invoice: ${invoiceNumber} (${quantity} × Rs. ${customRate} ${plateType})${selectedTCross && tCrossFeet > 0 ? ` + ${selectedTCross.name}: ${tCrossFeet} ${selectedTCross.unit}` : ''}${selectedWallAngle && wallAnglePieces > 0 ? ` + ${selectedWallAngle.name}: ${wallAnglePieces} ${selectedWallAngle.unit}` : ''}`
     );
 
     // Reset Form
@@ -142,6 +176,10 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
     setDiscount(0);
     setTCrossFeet(0);
     setTCrossRate(0);
+    setTCrossTypeId('');
+    setWallAnglePieces(0);
+    setWallAngleRate(0);
+    setWallAngleId('');
     setNotes('');
 
     triggerToast(`Invoice ${invoiceNumber} created and dispatched.`);
@@ -153,6 +191,13 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
       const updated = sales.filter((s) => s.id !== sale.id);
       db.saveSales(updated);
       setSales(updated);
+
+      if (sale.tCrossFeet && sale.tCrossTypeId) {
+        db.saveTCrosses((db.getTCrosses ? db.getTCrosses() : []).map((item) => item.id === sale.tCrossTypeId ? { ...item, quantity: item.quantity + sale.tCrossFeet! } : item));
+      }
+      if (sale.wallAnglePieces && sale.wallAngleId) {
+        db.saveWallAngles((db.getWallAngles ? db.getWallAngles() : []).map((item) => item.id === sale.wallAngleId ? { ...item, quantity: item.quantity + sale.wallAnglePieces! } : item));
+      }
 
       // 2. Cascading delete from customer ledger
       deleteLedgerByReference(sale.id, sale.customerId);
@@ -227,6 +272,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                 <th className="py-3 px-2">Dispatch Date</th>
                 <th className="py-3 px-2">Customer name</th>
                 <th className="py-3 px-2">Manufactured Plate Type</th>
+                <th className="py-3 px-2">Accessories</th>
                 <th className="py-3 px-2 text-right">Quantity</th>
                 <th className="py-3 px-2 text-right">Billed Rate</th>
                 <th className="py-3 px-2 text-right">Grand Total</th>
@@ -243,6 +289,11 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                     <td className="py-3 px-2 font-mono text-slate-400">{sale.date}</td>
                     <td className="py-3 px-2 font-semibold text-slate-800">{sale.customerName}</td>
                     <td className="py-3 px-2 text-slate-500">{sale.productName}</td>
+                    <td className="py-3 px-2 text-slate-500">
+                      {sale.tCrossTypeName && <div>{sale.tCrossTypeName}: {sale.tCrossFeet} {sale.tCrossUnit || 'feet'}</div>}
+                      {sale.wallAngleName && <div>{sale.wallAngleName}: {sale.wallAnglePieces} {sale.wallAngleUnit || 'pieces'}</div>}
+                      {!sale.tCrossTypeName && !sale.wallAngleName && '—'}
+                    </td>
                     <td className="py-3 px-2 text-right font-mono font-bold text-slate-900">
                       {sale.quantity.toLocaleString()} <span className="text-[10px] font-normal text-slate-400">pcs</span>
                     </td>
@@ -274,7 +325,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                  <td colSpan={9} className="py-8 text-center text-slate-400">
                     No orders dispatched yet.
                   </td>
                 </tr>
@@ -365,14 +416,22 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
               </div>
 
               <div>
-                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">T Cross (optional) - Feet</label>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">T Cross (optional)</label>
                 <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">Type</label>
+                    <select value={tCrossTypeId} onChange={(e) => setTCrossTypeId(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800">
+                      <option value="">No T Cross</option>
+                      {tCrosses.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.unit})</option>)}
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-slate-400 text-[11px] font-medium mb-1">Length (ft)</label>
                     <input
                       type="number"
                       min="0"
                       value={tCrossFeet}
+                      disabled={!tCrossTypeId}
                       onChange={(e) => setTCrossFeet(parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                       placeholder="Feet"
@@ -385,17 +444,40 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                       min="0"
                       step="0.01"
                       value={tCrossRate}
+                      disabled={!tCrossTypeId}
                       onChange={(e) => setTCrossRate(parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                       placeholder="Rate / ft"
                     />
                   </div>
-                  <div>
+                  <div className="col-span-3 sm:col-span-1">
                     <label className="block text-slate-400 text-[11px] font-medium mb-1">Amount (Rs)</label>
                     <div className="p-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center">
                       <span className="font-mono font-extrabold text-indigo-700">Rs. {(tCrossFeet * tCrossRate).toFixed(2)}</span>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Wall Angle (optional)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">Type</label>
+                    <select value={wallAngleId} onChange={(e) => setWallAngleId(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800">
+                      <option value="">No Wall Angle</option>
+                      {wallAngles.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.unit})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">Quantity (pcs)</label>
+                    <input type="number" min="0" value={wallAnglePieces} disabled={!wallAngleId} onChange={(e) => setWallAnglePieces(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" placeholder="Pieces" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">Rate per piece (Rs)</label>
+                    <input type="number" min="0" step="0.01" value={wallAngleRate} disabled={!wallAngleId} onChange={(e) => setWallAngleRate(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" placeholder="Rate / piece" />
+                  </div>
+                  <div className="col-span-3 p-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-end"><span className="font-mono font-extrabold text-orange-700">Wall Angle Amount: Rs. {wallAngleAmount.toFixed(2)}</span></div>
                 </div>
               </div>
 
@@ -519,10 +601,18 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                   </tr>
                   {activeInvoiceSale.tCrossAmount && activeInvoiceSale.tCrossFeet ? (
                     <tr>
-                      <td className="py-3 font-semibold text-slate-800">{activeInvoiceSale.tCrossFeet} ft of T Cross</td>
+                      <td className="py-3 font-semibold text-slate-800">{activeInvoiceSale.tCrossTypeName || 'T Cross'}</td>
                       <td className="py-3 text-right font-mono">{activeInvoiceSale.tCrossFeet.toLocaleString()} ft</td>
                       <td className="py-3 text-right font-mono">Rs. {activeInvoiceSale.tCrossRate}</td>
                       <td className="py-3 text-right font-mono">Rs. {activeInvoiceSale.tCrossAmount?.toLocaleString()}</td>
+                    </tr>
+                  ) : null}
+                  {activeInvoiceSale.wallAngleAmount && activeInvoiceSale.wallAnglePieces ? (
+                    <tr>
+                      <td className="py-3 font-semibold text-slate-800">{activeInvoiceSale.wallAngleName || 'Wall Angle'}</td>
+                      <td className="py-3 text-right font-mono">{activeInvoiceSale.wallAnglePieces.toLocaleString()} {activeInvoiceSale.wallAngleUnit || 'pieces'}</td>
+                      <td className="py-3 text-right font-mono">Rs. {activeInvoiceSale.wallAngleRate}</td>
+                      <td className="py-3 text-right font-mono">Rs. {activeInvoiceSale.wallAngleAmount.toLocaleString()}</td>
                     </tr>
                   ) : null}
                 </tbody>

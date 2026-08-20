@@ -77,6 +77,7 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
   const txs = db.getTransactions();
   const materials = db.getMaterials();
   const tCrosses = db.getTCrosses ? db.getTCrosses() : [];
+  const wallAngles = db.getWallAngles ? db.getWallAngles() : [];
 
   const reportRange = useMemo(() => {
     if (reportScope === 'daily') {
@@ -170,22 +171,35 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
   const tCrossRemaining = tCrosses.reduce((s, t) => s + t.quantity, 0);
   const tCrossSalesFeet = filteredSales.reduce((s, sale) => s + (sale.tCrossFeet || 0), 0);
   const tCrossRevenue = filteredSales.reduce((s, sale) => s + (sale.tCrossAmount || 0), 0);
-  // Assume single T Cross type cost per unit if available
-  const tCrossCostPerUnit = tCrosses.length > 0 ? tCrosses[0].costPerUnit : 0;
-  const tCrossStockUsedCost = tCrossSalesFeet * tCrossCostPerUnit;
+  const getTCrossQuantity = (sale: typeof filteredSales[number]) => sale.tCrossFeet || 0;
+  const getTCrossItem = (sale: typeof filteredSales[number]) => tCrosses.find((item) => item.id === sale.tCrossTypeId) || tCrosses.find((item) => item.name.toLowerCase() === (sale.tCrossTypeName || '').toLowerCase()) || tCrosses[0];
+  const tCrossStockUsedCost = filteredSales.reduce((sum, sale) => sum + getTCrossQuantity(sale) * (getTCrossItem(sale)?.costPerUnit || 0), 0);
   const tCrossProfit = tCrossRevenue - tCrossStockUsedCost;
+  const tCrossByType = tCrosses.map((item) => ({
+    ...item,
+    sold: filteredSales.reduce((sum, sale) => sum + (sale.tCrossTypeId === item.id || sale.tCrossTypeName === item.name ? getTCrossQuantity(sale) : 0), 0),
+    revenue: filteredSales.reduce((sum, sale) => sum + (sale.tCrossTypeId === item.id || sale.tCrossTypeName === item.name ? sale.tCrossAmount || 0 : 0), 0),
+  }));
+  const wallAngleRemaining = wallAngles.reduce((sum, item) => sum + item.quantity, 0);
+  const wallAngleSales = filteredSales.reduce((sum, sale) => sum + (sale.wallAnglePieces || 0), 0);
+  const wallAngleRevenue = filteredSales.reduce((sum, sale) => sum + (sale.wallAngleAmount || 0), 0);
+  const wallAngleStockUsedCost = filteredSales.reduce((sum, sale) => {
+    const item = wallAngles.find((entry) => entry.id === sale.wallAngleId) || wallAngles.find((entry) => entry.name === sale.wallAngleName) || wallAngles[0];
+    return sum + (sale.wallAnglePieces || 0) * (item?.costPerUnit || 0);
+  }, 0);
 
   // include T Cross stock used into overall stockUsedCost
-  const totalStockUsedCost = stockUsedCost + tCrossStockUsedCost;
+  const accessoryStockUsedCost = tCrossStockUsedCost + wallAngleStockUsedCost;
+  const totalStockUsedCost = stockUsedCost + accessoryStockUsedCost;
 
   const remainingWet = Math.max(0, totalWetProduced - totalWetReceivedToDry);
   const remainingDry = Math.max(0, totalDryProduced - totalDryReceivedToFinal);
   const remainingFinal = Math.max(0, totalFinalProduced - soldQty);
 
   const revenue = netRevenue;
-  const netProfit = revenue - stockUsedCost - totalExpenses - labourCost;
+  const netProfit = revenue - totalStockUsedCost - totalExpenses - labourCost;
   const labourCostPerPlate = effectiveBaseUnits > 0 ? labourCost / effectiveBaseUnits : 0;
-  const profitPerPlate = effectiveBaseUnits > 0 ? netProfit / effectiveBaseUnits : 0;
+  const profitPerPlate = effectiveBaseUnits > 0 ? (netProfit + accessoryStockUsedCost) / effectiveBaseUnits : 0;
   const totalReceivables = filteredCustomers.reduce((sum, c) => sum + getCustomerOutstandingBalance(c.id), 0);
   const procurementCost = filteredTxs.filter((t) => t.type === 'in').reduce((sum, t) => sum + t.cost, 0);
 
@@ -345,24 +359,14 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
               <Layers size={16} className="text-emerald-600" />
               <h3 className="font-display font-bold text-slate-800 text-sm">T Cross Summary</h3>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-2 rounded-lg bg-slate-50">
-                <p className="text-slate-400 uppercase">Remaining T Cross</p>
-                <p className="font-mono font-bold text-slate-800 mt-1">{tCrossRemaining.toLocaleString()} ft</p>
-              </div>
-              <div className="p-2 rounded-lg bg-slate-50">
-                <p className="text-slate-400 uppercase">Feet Sold</p>
-                <p className="font-mono font-bold text-slate-800 mt-1">{tCrossSalesFeet.toLocaleString()} ft</p>
-              </div>
-              <div className="p-2 rounded-lg bg-slate-50">
-                <p className="text-slate-400 uppercase">Revenue</p>
-                <p className="font-mono font-bold text-slate-800 mt-1">{formatCurrency(tCrossRevenue)}</p>
-              </div>
-              <div className="p-2 rounded-lg bg-slate-50">
-                <p className="text-slate-400 uppercase">Profit (T Cross)</p>
-                <p className="font-mono font-bold text-slate-800 mt-1">{formatCurrency(tCrossProfit)}</p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {tCrossByType.map((item) => <div key={item.id} className="p-2 rounded-lg bg-slate-50"><p className="text-slate-400 uppercase">{item.name} Remaining</p><p className="font-mono font-bold text-slate-800 mt-1">{item.quantity.toLocaleString()} {item.unit}</p><p className="text-slate-400 mt-1">Sold: {item.sold.toLocaleString()} {item.unit}</p><p className="text-slate-700 mt-1">Revenue: {formatCurrency(item.revenue)}</p></div>)}
+              <div className="p-2 rounded-lg bg-slate-50"><p className="text-slate-400 uppercase">T Cross Total</p><p className="font-mono font-bold text-slate-800 mt-1">{tCrossRemaining.toLocaleString()} ft remaining</p><p className="text-slate-400 mt-1">Sold: {tCrossSalesFeet.toLocaleString()} ft</p><p className="text-slate-700 mt-1">Revenue: {formatCurrency(tCrossRevenue)}</p><p className="text-slate-700 mt-1">Profit: {formatCurrency(tCrossProfit)}</p></div>
             </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-3"><Layers size={16} className="text-orange-600" /><h3 className="font-display font-bold text-slate-800 text-sm">Wall Angle Summary</h3></div>
+            <div className="grid grid-cols-2 gap-3 text-xs"><div className="p-2 rounded-lg bg-slate-50"><p className="text-slate-400 uppercase">Remaining Wall Angle</p><p className="font-mono font-bold text-slate-800 mt-1">{wallAngleRemaining.toLocaleString()} pieces</p></div><div className="p-2 rounded-lg bg-slate-50"><p className="text-slate-400 uppercase">Pieces Sold</p><p className="font-mono font-bold text-slate-800 mt-1">{wallAngleSales.toLocaleString()} pieces</p></div><div className="p-2 rounded-lg bg-slate-50"><p className="text-slate-400 uppercase">Revenue</p><p className="font-mono font-bold text-slate-800 mt-1">{formatCurrency(wallAngleRevenue)}</p></div><div className="p-2 rounded-lg bg-slate-50"><p className="text-slate-400 uppercase">Stock Cost Used</p><p className="font-mono font-bold text-slate-800 mt-1">{formatCurrency(wallAngleStockUsedCost)}</p></div></div>
           </div>
         </div>
 
@@ -437,7 +441,7 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
                 <span className="text-slate-600">Stock/Material Used</span>
-                <span className="font-mono font-bold text-slate-800">{formatCurrency(stockUsedCost)}</span>
+                <span className="font-mono font-bold text-slate-800">{formatCurrency(totalStockUsedCost)}</span>
               </div>
               <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
                 <span className="text-slate-600">Labour (Wet+Dry+Final)</span>
@@ -449,7 +453,7 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
               </div>
               <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 border border-slate-200 mt-2">
                 <span className="font-semibold text-slate-700">Total Cost</span>
-                <span className="font-mono font-bold text-slate-800">{formatCurrency(stockUsedCost + labourCost + totalExpenses)}</span>
+                <span className="font-mono font-bold text-slate-800">{formatCurrency(totalStockUsedCost + labourCost + totalExpenses)}</span>
               </div>
             </div>
           </div>
