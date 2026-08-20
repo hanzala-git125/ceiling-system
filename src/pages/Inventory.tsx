@@ -193,7 +193,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
     setTCrossTypes(persistedTCross);
 
     const existingWallAngles = (db.getWallAngles && db.getWallAngles()) || [];
-    const persistedWallAngles = existingWallAngles.length > 0 ? existingWallAngles : [{
+    const persistedWallAngles = existingWallAngles.length > 0 ? [{ ...existingWallAngles[0], name: 'Wall Angle', unit: 'pieces' }] : [{
       id: 'wall_angle_' + Math.random().toString(36).substr(2, 9), name: 'Wall Angle', unit: 'pieces', quantity: 0,
       costPerUnit: 0, minThreshold: 0, conversionFactor: 1, createdAt: getTodayStr(),
     }];
@@ -206,7 +206,11 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
       }
     });
     void refreshWallAnglesFromApi().then((apiItems) => {
-      if (apiItems.length > 0) setWallAngles(apiItems);
+      if (apiItems.length > 0) {
+        const singleton = [{ ...apiItems[0], name: 'Wall Angle', unit: 'pieces' }];
+        setWallAngles(singleton);
+        db.saveWallAngles(singleton);
+      }
     });
   }, []);
 
@@ -423,23 +427,16 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
 
   const handleCreateOrUpdateWallAngle = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWallAngleName.trim()) return;
-    const normalizedName = newWallAngleName.trim();
-    const duplicate = wallAngles.find((item) => item.id !== editingWallAngle?.id && item.name.toLowerCase() === normalizedName.toLowerCase());
-    if (duplicate) { showToast('error', 'A Wall Angle entry with this name already exists.'); return; }
-    const next = editingWallAngle
-      ? wallAngles.map((item) => item.id === editingWallAngle.id ? { ...item, name: normalizedName, unit: newWallAngleUnit, quantity: editingWallAngle.quantity + newWallAngleQuantity, costPerUnit: newWallAngleCost > 0 ? newWallAngleCost : item.costPerUnit, minThreshold: newWallAngleThreshold, conversionFactor: newWallAngleConversionFactor > 0 ? newWallAngleConversionFactor : item.conversionFactor } : item)
-      : [...wallAngles, { id: 'wall_angle_' + Math.random().toString(36).substr(2, 9), name: normalizedName, unit: newWallAngleUnit, quantity: newWallAngleQuantity, costPerUnit: newWallAngleCost, minThreshold: newWallAngleThreshold, conversionFactor: newWallAngleConversionFactor > 0 ? newWallAngleConversionFactor : 1, createdAt: getTodayStr() }];
+    const current = wallAngles[0] || { id: 'wall_angle_' + Math.random().toString(36).substr(2, 9), name: 'Wall Angle', unit: 'pieces', quantity: 0, costPerUnit: 0, minThreshold: 0, conversionFactor: 1, createdAt: getTodayStr() };
+    const next = [{ ...current, name: 'Wall Angle', unit: 'pieces', costPerUnit: newWallAngleCost > 0 ? newWallAngleCost : current.costPerUnit, minThreshold: newWallAngleThreshold, conversionFactor: newWallAngleConversionFactor > 0 ? newWallAngleConversionFactor : current.conversionFactor }];
     persistWallAngles(next);
     resetWallAngleForm();
     setShowWallAngleTypeModal(false);
-    showToast('success', editingWallAngle ? 'Wall Angle updated.' : 'Wall Angle created.');
+    showToast('success', 'Wall Angle settings updated.');
   };
 
   const handleDeleteWallAngle = (id: string, name: string) => {
-    if (!confirm(`Delete ${name}? This will remove the Wall Angle from inventory.`)) return;
-    persistWallAngles(wallAngles.filter((item) => item.id !== id));
-    showToast('success', `${name} deleted.`);
+    showToast('error', 'Wall Angle is a fixed inventory item and cannot be deleted.');
   };
 
   const handleRestockWallAngle = (e: React.FormEvent) => {
@@ -447,6 +444,14 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
     if (!selectedWallAngle || wallAngleRestockQty <= 0) return;
     const next = wallAngles.map((item) => item.id === selectedWallAngle.id ? { ...item, quantity: item.quantity + wallAngleRestockQty, costPerUnit: wallAngleRestockCost > 0 ? calculateAverageCostPerUnit(item.quantity, item.costPerUnit, wallAngleRestockQty, wallAngleRestockCost) : item.costPerUnit } : item);
     persistWallAngles(next);
+    const updatedTransactions = db.getTransactions();
+    updatedTransactions.push({
+      id: 'tx_' + Math.random().toString(36).substr(2, 9), materialId: selectedWallAngle.id, materialName: 'Wall Angle', type: 'in',
+      quantity: wallAngleRestockQty, cost: wallAngleRestockCost, date: wallAngleRestockDate,
+      notes: wallAngleRestockNotes.trim() || 'Wall Angle stock restocked', unit: 'pieces',
+    });
+    db.saveTransactions(updatedTransactions);
+    setTransactions(updatedTransactions);
     setSelectedWallAngle(null);
     setWallAngleRestockQty(0);
     setWallAngleRestockCost(0);
@@ -1593,29 +1598,29 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
           <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-lg border border-slate-100 w-full max-w-2xl overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
-                <h3 className="font-display font-bold text-slate-800 text-sm flex items-center gap-2"><Boxes size={16} className="text-orange-600" /> Manage Wall Angle</h3>
+                <h3 className="font-display font-bold text-slate-800 text-sm flex items-center gap-2"><Boxes size={16} className="text-orange-600" /> Wall Angle Settings</h3>
                 <button onClick={() => { setShowWallAngleTypeModal(false); resetWallAngleForm(); }} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
               </div>
               <div className="p-5 space-y-4 text-xs">
                 <form onSubmit={handleCreateOrUpdateWallAngle} className="space-y-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4">
                   <div className="flex items-center justify-between"><h4 className="font-semibold text-slate-700">{editingWallAngle ? 'Update Wall Angle' : 'Add Wall Angle'}</h4>{editingWallAngle && <button type="button" onClick={resetWallAngleForm} className="text-[10px] font-semibold text-slate-500">Cancel edit</button>}</div>
-                  <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Name</label><input type="text" required value={newWallAngleName} onChange={(e) => setNewWallAngleName(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800" /></div>
+                  <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Name</label><input type="text" readOnly value="Wall Angle" className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-100 text-slate-800" /></div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Stock Unit</label><select value={newWallAngleUnit} onChange={(e) => setNewWallAngleUnit(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800">{INVENTORY_UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}</select></div>
+                    <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Stock Unit</label><input type="text" readOnly value="pieces" className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-100 text-slate-800" /></div>
                     <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Min. Alert Threshold</label><input type="number" min="0" required value={newWallAngleThreshold} onChange={(e) => setNewWallAngleThreshold(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4"><div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Conversion Factor</label><input type="number" min="1" step="0.01" required value={newWallAngleConversionFactor} onChange={(e) => setNewWallAngleConversionFactor(parseFloat(e.target.value) || 1)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div><div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Opening Stock Qty</label><input type="number" min="0" required value={newWallAngleQuantity} onChange={(e) => setNewWallAngleQuantity(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div></div>
+                  <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Conversion Factor</label><input type="number" min="1" step="0.01" required value={newWallAngleConversionFactor} onChange={(e) => setNewWallAngleConversionFactor(parseFloat(e.target.value) || 1)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
                   <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Cost Per Unit (Rs)</label><input type="number" step="0.01" min="0" required value={newWallAngleCost} onChange={(e) => setNewWallAngleCost(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
-                  <button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-lg text-xs tracking-wider uppercase">{editingWallAngle ? 'Save Wall Angle' : 'Create Wall Angle'}</button>
+                  <button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-lg text-xs tracking-wider uppercase">Save Wall Angle Settings</button>
                 </form>
-                <div className="rounded-xl border border-slate-100 p-3"><div className="flex items-center justify-between mb-3"><h4 className="font-semibold text-slate-700">Existing Wall Angle Entries</h4><span className="text-[10px] text-slate-400">{wallAngles.length} listed</span></div><div className="space-y-2">{wallAngles.map((item) => <div key={item.id} className="flex items-center justify-between rounded-lg border border-slate-100 bg-white px-3 py-2"><div><p className="font-semibold text-slate-800">{item.name}</p><p className="text-[10px] text-slate-400">{item.quantity.toLocaleString()} {item.unit} • Min {item.minThreshold} {item.unit}</p></div><div className="flex items-center gap-1.5"><button onClick={() => { setSelectedWallAngle(item); setWallAngleRestockQty(0); setWallAngleRestockCost(0); setShowWallAngleRestockModal(true); }} className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700">Add Stock</button><button onClick={() => { setEditingWallAngle(item); setNewWallAngleName(item.name); setNewWallAngleUnit(item.unit); setNewWallAngleConversionFactor(item.conversionFactor); setNewWallAngleQuantity(0); setNewWallAngleCost(item.costPerUnit); setNewWallAngleThreshold(item.minThreshold); }} className="p-1 rounded text-slate-400" title="Edit"><Edit2 size={12} /></button><button onClick={() => handleDeleteWallAngle(item.id, item.name)} className="p-1 rounded text-slate-400 hover:text-red-600" title="Delete"><Trash2 size={12} /></button></div></div>)}</div></div>
+                <div className="rounded-xl border border-slate-100 p-3"><div className="flex items-center justify-between mb-3"><h4 className="font-semibold text-slate-700">Wall Angle Stock</h4><span className="text-[10px] text-slate-400">Single inventory item</span></div><p className="text-[10px] text-slate-400">Current stock: {wallAngles[0]?.quantity.toLocaleString() || 0} pieces</p></div>
               </div>
             </div>
           </div>
         )}
 
         {showWallAngleRestockModal && selectedWallAngle && (
-          <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4"><div className="bg-white rounded-xl shadow-lg w-full max-w-md p-5"><div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800">Add Stock: {selectedWallAngle.name}</h3><button onClick={() => setShowWallAngleRestockModal(false)}><X size={16} /></button></div><form onSubmit={handleRestockWallAngle} className="space-y-4 text-xs"><div><label className="block text-slate-500 font-semibold mb-1">Quantity ({selectedWallAngle.unit})</label><input type="number" min="0.01" step="0.01" required value={wallAngleRestockQty} onChange={(e) => setWallAngleRestockQty(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Total Purchase Cost (Rs)</label><input type="number" min="0" step="0.01" value={wallAngleRestockCost} onChange={(e) => setWallAngleRestockCost(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Date</label><input type="date" value={wallAngleRestockDate} onChange={(e) => setWallAngleRestockDate(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" /></div><button type="submit" className="w-full bg-orange-600 text-white font-semibold py-2.5 rounded-lg">Add Stock</button></form></div></div>
+          <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4 overflow-y-auto"><div className="bg-white rounded-xl shadow-lg w-full max-w-md p-5 my-4"><div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800">Add Wall Angle Stock</h3><button onClick={() => setShowWallAngleRestockModal(false)}><X size={16} /></button></div><form onSubmit={handleRestockWallAngle} className="space-y-4 text-xs"><div><label className="block text-slate-500 font-semibold mb-1">Restock Qty (pieces)</label><input type="number" min="0.01" step="1" required value={wallAngleRestockQty} onChange={(e) => setWallAngleRestockQty(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Inward Date</label><input type="date" required value={wallAngleRestockDate} onChange={(e) => setWallAngleRestockDate(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" /></div><div><label className="block text-slate-500 font-semibold mb-1">Total Procurement Cost (Rs)</label><input type="number" min="0" step="0.01" required value={wallAngleRestockCost} onChange={(e) => setWallAngleRestockCost(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Restock Notes / Memo (optional)</label><textarea value={wallAngleRestockNotes} onChange={(e) => setWallAngleRestockNotes(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" rows={3} /></div><button type="submit" className="w-full bg-orange-600 text-white font-semibold py-2.5 rounded-lg">Add Stock</button></form></div></div>
         )}
 
       {showAddMaterialModal && (

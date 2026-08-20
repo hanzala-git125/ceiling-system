@@ -338,14 +338,14 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
       {/* DISPATCH SALE MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4 no-print">
-          <div className="bg-white rounded-xl shadow-lg border border-slate-100 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-150">
+          <div className="bg-white rounded-xl shadow-lg border border-slate-100 w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-150">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
               <h3 className="font-display font-bold text-slate-800 text-sm">Log Order Dispatch</h3>
               <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X size={16} />
               </button>
             </div>
-            <form onSubmit={handleCreateSale} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleCreateSale} className="p-5 space-y-4 text-xs overflow-y-auto min-h-0">
               {error && (
                 <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-start gap-2 text-red-700 font-medium">
                   <AlertCircle size={14} className="mt-0.5 shrink-0" />
@@ -418,12 +418,12 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
               <div>
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">T Cross (optional)</label>
                 <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-slate-400 text-[11px] font-medium mb-1">Type</label>
-                    <select value={tCrossTypeId} onChange={(e) => setTCrossTypeId(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800">
-                      <option value="">No T Cross</option>
-                      {tCrosses.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.unit})</option>)}
-                    </select>
+                  <div className="col-span-3">
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">T Cross type</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {tCrosses.map((item) => <label key={item.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer ${tCrossTypeId === item.id ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-slate-50 text-slate-600'}`}><input type="radio" name="tCrossType" value={item.id} checked={tCrossTypeId === item.id} onChange={(e) => setTCrossTypeId(e.target.value)} /><span>{item.name}</span></label>)}
+                    </div>
+                    <button type="button" onClick={() => { setTCrossTypeId(''); setTCrossFeet(0); setTCrossRate(0); }} className="mt-1 text-[10px] text-slate-400 hover:text-slate-600">No T Cross</button>
                   </div>
                   <div>
                     <label className="block text-slate-400 text-[11px] font-medium mb-1">Length (ft)</label>
@@ -462,12 +462,11 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
               <div>
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Wall Angle (optional)</label>
                 <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-slate-400 text-[11px] font-medium mb-1">Type</label>
-                    <select value={wallAngleId} onChange={(e) => setWallAngleId(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800">
-                      <option value="">No Wall Angle</option>
-                      {wallAngles.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.unit})</option>)}
-                    </select>
+                  <div className="col-span-3">
+                    <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-100 bg-slate-50 text-slate-600 cursor-pointer">
+                      <input type="checkbox" checked={Boolean(wallAngleId)} onChange={(e) => setWallAngleId(e.target.checked ? wallAngles[0]?.id || '' : '')} />
+                      <span>Include Wall Angle (pieces)</span>
+                    </label>
                   </div>
                   <div>
                     <label className="block text-slate-400 text-[11px] font-medium mb-1">Quantity (pcs)</label>
