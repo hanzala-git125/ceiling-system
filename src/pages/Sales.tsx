@@ -31,7 +31,6 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
   const [tCrossTypeId, setTCrossTypeId] = useState('');
   const [wallAnglePieces, setWallAnglePieces] = useState<number>(0);
   const [wallAngleRate, setWallAngleRate] = useState<number>(0);
-  const [wallAngleId, setWallAngleId] = useState('');
   const [notes, setNotes] = useState('');
 
   const [error, setError] = useState('');
@@ -56,7 +55,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
   const tCrosses = db.getTCrosses ? db.getTCrosses() : [];
   const wallAngles = db.getWallAngles ? db.getWallAngles() : [];
   const selectedTCross = tCrosses.find((item) => item.id === tCrossTypeId);
-  const selectedWallAngle = wallAngles.find((item) => item.id === wallAngleId);
+  const selectedWallAngle = wallAngles[0];
 
   const handleCreateSale = (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,7 +178,6 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
     setTCrossTypeId('');
     setWallAnglePieces(0);
     setWallAngleRate(0);
-    setWallAngleId('');
     setNotes('');
 
     triggerToast(`Invoice ${invoiceNumber} created and dispatched.`);
@@ -420,10 +418,10 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-3">
                     <label className="block text-slate-400 text-[11px] font-medium mb-1">T Cross type</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {tCrosses.map((item) => <label key={item.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer ${tCrossTypeId === item.id ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-slate-50 text-slate-600'}`}><input type="radio" name="tCrossType" value={item.id} checked={tCrossTypeId === item.id} onChange={(e) => setTCrossTypeId(e.target.value)} /><span>{item.name}</span></label>)}
-                    </div>
-                    <button type="button" onClick={() => { setTCrossTypeId(''); setTCrossFeet(0); setTCrossRate(0); }} className="mt-1 text-[10px] text-slate-400 hover:text-slate-600">No T Cross</button>
+                    <select value={tCrossTypeId} onChange={(e) => setTCrossTypeId(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800">
+                      <option value="">No T Cross</option>
+                      {tCrosses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-slate-400 text-[11px] font-medium mb-1">Length (ft)</label>
@@ -462,19 +460,13 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
               <div>
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Wall Angle (optional)</label>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-3">
-                    <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-100 bg-slate-50 text-slate-600 cursor-pointer">
-                      <input type="checkbox" checked={Boolean(wallAngleId)} onChange={(e) => setWallAngleId(e.target.checked ? wallAngles[0]?.id || '' : '')} />
-                      <span>Include Wall Angle (pieces)</span>
-                    </label>
-                  </div>
                   <div>
                     <label className="block text-slate-400 text-[11px] font-medium mb-1">Quantity (pcs)</label>
-                    <input type="number" min="0" value={wallAnglePieces} disabled={!wallAngleId} onChange={(e) => setWallAnglePieces(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" placeholder="Pieces" />
+                    <input type="number" min="0" value={wallAnglePieces} onChange={(e) => setWallAnglePieces(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" placeholder="Pieces" />
                   </div>
                   <div>
                     <label className="block text-slate-400 text-[11px] font-medium mb-1">Rate per piece (Rs)</label>
-                    <input type="number" min="0" step="0.01" value={wallAngleRate} disabled={!wallAngleId} onChange={(e) => setWallAngleRate(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" placeholder="Rate / piece" />
+                    <input type="number" min="0" step="0.01" value={wallAngleRate} onChange={(e) => setWallAngleRate(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" placeholder="Rate / piece" />
                   </div>
                   <div className="col-span-3 p-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-end"><span className="font-mono font-extrabold text-orange-700">Wall Angle Amount: Rs. {wallAngleAmount.toFixed(2)}</span></div>
                 </div>
