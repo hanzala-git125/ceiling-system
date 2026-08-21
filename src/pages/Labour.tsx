@@ -210,7 +210,7 @@ export default function LabourPage({ language = 'en' }: LabourPageProps) {
             </div>
             <div>
               <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Rate per Plate (Rs)</label>
-              <input type="number" step="any" min="0" value={ratePerPlate || ''} onChange={(e) => setRatePerPlate(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800" />
+              <input type="number" step="any" min="0" value={ratePerPlate} onChange={(e) => setRatePerPlate(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800" />
             </div>
             <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg text-xs tracking-wider uppercase transition-all">
               {editingId ? 'Save Operator' : 'Add Operator'}
@@ -359,7 +359,7 @@ export default function LabourPage({ language = 'en' }: LabourPageProps) {
                   type="number"
                   min="1"
                   step="any"
-                  value={paymentAmount || ''}
+                  value={paymentAmount}
                   onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800"
                 />

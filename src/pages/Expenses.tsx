@@ -402,7 +402,7 @@ export default function ExpensesPage({ language = 'en' }: ExpensesPageProps) {
                   type="number"
                   required
                   min="1"
-                  value={amount || ''}
+                  value={amount}
                   onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold text-sm"
                 />

@@ -395,7 +395,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                     step="any"
                     min="0.1"
                     required
-                    value={customRate || ''}
+                    value={customRate}
                     onChange={(e) => setCustomRate(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold"
                   />
@@ -406,7 +406,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                     type="number"
                     min="1"
                     required
-                    value={quantity || ''}
+                    value={quantity}
                     onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold"
                   />
@@ -428,7 +428,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                     <input
                       type="number"
                       min="0"
-                      value={tCrossFeet || ''}
+                      value={tCrossFeet}
                       disabled={!tCrossTypeId}
                       onChange={(e) => setTCrossFeet(parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
@@ -441,7 +441,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                       type="number"
                       min="0"
                       step="any"
-                      value={tCrossRate || ''}
+                      value={tCrossRate}
                       disabled={!tCrossTypeId}
                       onChange={(e) => setTCrossRate(parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
@@ -462,11 +462,11 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <label className="block text-slate-400 text-[11px] font-medium mb-1">Quantity (pcs)</label>
-                        <input type="number" min="0" step="any" value={wallAnglePieces || ''} onChange={(e) => setWallAnglePieces(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" placeholder="Pieces" />
+                        <input type="number" min="0" step="any" value={wallAnglePieces} onChange={(e) => setWallAnglePieces(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" placeholder="Pieces" />
                   </div>
                   <div>
                     <label className="block text-slate-400 text-[11px] font-medium mb-1">Rate per piece (Rs)</label>
-                    <input type="number" min="0" step="any" value={wallAngleRate || ''} onChange={(e) => setWallAngleRate(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" placeholder="Rate / piece" />
+                    <input type="number" min="0" step="any" value={wallAngleRate} onChange={(e) => setWallAngleRate(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" placeholder="Rate / piece" />
                   </div>
                   <div className="col-span-3 p-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-end"><span className="font-mono font-extrabold text-orange-700">Wall Angle Amount: Rs. {wallAngleAmount.toFixed(2)}</span></div>
                 </div>
@@ -478,7 +478,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
                   <input
                     type="number"
                     min="0"
-                    value={discount || ''}
+                    value={discount}
                     onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold"
                   />

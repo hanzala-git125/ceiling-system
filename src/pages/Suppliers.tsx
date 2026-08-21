@@ -438,7 +438,7 @@ export default function SuppliersPage({ language = 'en' }: SuppliersPageProps) {
                 </div>
                 <div>
                   <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Opening Balance</label>
-                  <input type="number" step="any" value={openingBalance || ''} onChange={(e) => setOpeningBalance(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" />
+                  <input type="number" step="any" value={openingBalance} onChange={(e) => setOpeningBalance(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" />
                 </div>
               </div>
               <div>
@@ -537,7 +537,7 @@ export default function SuppliersPage({ language = 'en' }: SuppliersPageProps) {
               {error && <div className="rounded-lg bg-rose-50 border border-rose-100 px-3 py-2 text-rose-700 text-[10px] font-semibold">{error}</div>}
               <div>
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Payment Amount</label>
-                <input type="number" step="any" min="0" required value={paymentAmount || ''} onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" />
+                <input type="number" step="any" min="0" required value={paymentAmount} onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono" />
               </div>
               <div>
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Payment Date</label>

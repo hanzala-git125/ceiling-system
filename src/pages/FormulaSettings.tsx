@@ -195,7 +195,7 @@ export default function FormulaSettings({ language = 'en' }: FormulaSettingsProp
                           type="number"
                           step="any"
                           min="0.001"
-                          value={editingAmount || ''}
+                          value={editingAmount}
                           onChange={(e) => setEditingAmount(parseFloat(e.target.value) || 0)}
                           className="w-24 px-2 py-1 text-xs border border-indigo-200 rounded-lg bg-indigo-50/20 text-slate-800 font-mono font-bold"
                         />
@@ -299,7 +299,7 @@ export default function FormulaSettings({ language = 'en' }: FormulaSettingsProp
                     step="0.001"
                     min="0.001"
                     required
-                    value={newAmount || ''}
+                    value={newAmount}
                     onChange={(e) => setNewAmount(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                   />

@@ -501,7 +501,7 @@ export default function CustomersPage({ language = 'en' }: CustomersPageProps) {
                   <input
                     type="number"
                     min="0"
-                    value={openingBalance || ''}
+                    value={openingBalance}
                     onChange={(e) => setOpeningBalance(parseFloat(e.target.value) || 0)}
                     placeholder="Previous outstanding balance if any"
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold"
@@ -578,7 +578,7 @@ export default function CustomersPage({ language = 'en' }: CustomersPageProps) {
                   type="number"
                   required
                   min="1"
-                  value={paymentAmount || ''}
+                  value={paymentAmount}
                   onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold text-sm"
                 />
