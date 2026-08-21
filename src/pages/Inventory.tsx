@@ -300,15 +300,12 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   };
 
   const calculateAverageCostPerUnit = (existingQuantity: number, existingCostPerUnit: number, addedQuantity: number, totalCost: number) => {
-    if (addedQuantity <= 0) {
-      return existingCostPerUnit;
-    }
-    const nextQuantity = existingQuantity + addedQuantity;
-    if (nextQuantity <= 0 || totalCost <= 0) {
-      return existingCostPerUnit;
-    }
-    const previousValue = existingQuantity * existingCostPerUnit;
-    return (previousValue + totalCost) / nextQuantity;
+    if (addedQuantity <= 0 || totalCost <= 0) return existingCostPerUnit;
+
+    const totalQuantity = existingQuantity + addedQuantity;
+    if (totalQuantity <= 0) return existingCostPerUnit;
+
+    return ((existingQuantity * existingCostPerUnit) + totalCost) / totalQuantity;
   };
 
   const handleCreateOrUpdatePanniType = (e: React.FormEvent) => {
@@ -328,7 +325,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
           name: normalizedName,
           unit: newPanniTypeUnit,
           quantity: editingPanniType.quantity + newPanniTypeQuantity,
-          costPerUnit: newPanniTypeCost > 0 ? newPanniTypeCost : item.costPerUnit,
+          costPerUnit: calculateAverageCostPerUnit(editingPanniType.quantity, item.costPerUnit, newPanniTypeQuantity, newPanniTypeQuantity * newPanniTypeCost),
           minThreshold: newPanniTypeThreshold,
           conversionFactor: newPanniTypeConversionFactor > 0 ? newPanniTypeConversionFactor : item.conversionFactor,
         } : item)
@@ -366,7 +363,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
           name: normalizedName,
           unit: newHdPaperTypeUnit,
           quantity: editingHdPaperType.quantity + newHdPaperTypeQuantity,
-          costPerUnit: newHdPaperTypeCost > 0 ? newHdPaperTypeCost : item.costPerUnit,
+          costPerUnit: calculateAverageCostPerUnit(editingHdPaperType.quantity, item.costPerUnit, newHdPaperTypeQuantity, newHdPaperTypeQuantity * newHdPaperTypeCost),
           minThreshold: newHdPaperTypeThreshold,
           conversionFactor: newHdPaperTypeConversionFactor > 0 ? newHdPaperTypeConversionFactor : item.conversionFactor,
         } : item)
@@ -404,7 +401,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
           name: normalizedName,
           unit: newTCrossUnit,
           quantity: editingTCross.quantity + newTCrossQuantity,
-          costPerUnit: newTCrossCost > 0 ? newTCrossCost : item.costPerUnit,
+          costPerUnit: calculateAverageCostPerUnit(editingTCross.quantity, item.costPerUnit, newTCrossQuantity, newTCrossQuantity * newTCrossCost),
           minThreshold: newTCrossThreshold,
           conversionFactor: newTCrossConversionFactor > 0 ? newTCrossConversionFactor : item.conversionFactor,
         } : item)
