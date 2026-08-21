@@ -316,8 +316,8 @@ export default function WasteManagement({ language = 'en' }: WasteManagementPage
                     type="number"
                     min="1"
                     required
-                    value={manualQty}
-                    onChange={(e) => setManualQty(parseInt(e.target.value) || 0)}
+                    value={manualQty || ''}
+                    onChange={(e) => setManualQty(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold"
                   />
                 </div>

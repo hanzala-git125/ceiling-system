@@ -240,8 +240,8 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
                   type="number"
                   min="1"
                   required
-                  value={received}
-                  onChange={(e) => setReceived(parseInt(e.target.value) || 0)}
+                  value={received || ''}
+                  onChange={(e) => setReceived(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold"
                 />
               </div>
@@ -251,8 +251,8 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
                   type="number"
                   min="1"
                   required
-                  value={produced}
-                  onChange={(e) => setProduced(parseInt(e.target.value) || 0)}
+                  value={produced || ''}
+                  onChange={(e) => setProduced(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold"
                 />
               </div>

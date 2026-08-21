@@ -123,8 +123,8 @@ export default function InventoryHdPaperModals({
                       type="number"
                       min="1"
                       required
-                      value={newHdPaperTypeThreshold}
-                      onChange={(e) => setNewHdPaperTypeThreshold(parseInt(e.target.value) || 0)}
+                      value={newHdPaperTypeThreshold || ''}
+                      onChange={(e) => setNewHdPaperTypeThreshold(parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
                     />
                   </div>
@@ -135,7 +135,7 @@ export default function InventoryHdPaperModals({
                     <input
                       type="number"
                       min="1"
-                      step="0.01"
+                      step="any"
                       required
                       value={newHdPaperTypeConversionFactor}
                       onChange={(e) => setNewHdPaperTypeConversionFactor(parseFloat(e.target.value) || 1)}
@@ -148,8 +148,8 @@ export default function InventoryHdPaperModals({
                       type="number"
                       min="0"
                       required
-                      value={newHdPaperTypeQuantity}
-                      onChange={(e) => setNewHdPaperTypeQuantity(parseInt(e.target.value) || 0)}
+                      value={newHdPaperTypeQuantity || ''}
+                      onChange={(e) => setNewHdPaperTypeQuantity(parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
                     />
                   </div>
@@ -158,10 +158,10 @@ export default function InventoryHdPaperModals({
                   <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Cost Per Unit (Rs)</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="any"
                     min="0"
                     required
-                    value={newHdPaperTypeCost}
+                    value={newHdPaperTypeCost || ''}
                     onChange={(e) => setNewHdPaperTypeCost(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
                   />
@@ -245,8 +245,8 @@ export default function InventoryHdPaperModals({
                     type="number"
                     min="1"
                     required
-                    value={hdPaperRestockQty}
-                    onChange={(e) => setHdPaperRestockQty(parseInt(e.target.value) || 0)}
+                    value={hdPaperRestockQty || ''}
+                    onChange={(e) => setHdPaperRestockQty(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                   />
                 </div>
@@ -267,7 +267,7 @@ export default function InventoryHdPaperModals({
                   type="number"
                   min="0"
                   required
-                  value={hdPaperRestockCost}
+                  value={hdPaperRestockCost || ''}
                   onChange={(e) => setHdPaperRestockCost(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                 />

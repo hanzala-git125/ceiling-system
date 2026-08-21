@@ -1339,8 +1339,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                       type="number"
                       min="1"
                       required
-                      value={newPanniTypeThreshold}
-                      onChange={(e) => setNewPanniTypeThreshold(parseInt(e.target.value) || 0)}
+                      value={newPanniTypeThreshold || ''}
+                      onChange={(e) => setNewPanniTypeThreshold(parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
                     />
                   </div>
@@ -1351,7 +1351,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                     <input
                       type="number"
                       min="1"
-                      step="0.01"
+                      step="any"
                       required
                       value={newPanniTypeConversionFactor}
                       onChange={(e) => setNewPanniTypeConversionFactor(parseFloat(e.target.value) || 1)}
@@ -1364,8 +1364,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                       type="number"
                       min="0"
                       required
-                      value={newPanniTypeQuantity}
-                      onChange={(e) => setNewPanniTypeQuantity(parseInt(e.target.value) || 0)}
+                      value={newPanniTypeQuantity || ''}
+                      onChange={(e) => setNewPanniTypeQuantity(parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
                     />
                   </div>
@@ -1374,10 +1374,10 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                   <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Cost Per Unit (Rs)</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="any"
                     min="0"
                     required
-                    value={newPanniTypeCost}
+                    value={newPanniTypeCost || ''}
                     onChange={(e) => setNewPanniTypeCost(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
                   />
@@ -1490,8 +1490,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                         type="number"
                         min="0"
                         required
-                        value={newTCrossThreshold}
-                        onChange={(e) => setNewTCrossThreshold(parseInt(e.target.value) || 0)}
+                        value={newTCrossThreshold || ''}
+                        onChange={(e) => setNewTCrossThreshold(parseFloat(e.target.value) || 0)}
                         className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
                       />
                     </div>
@@ -1502,7 +1502,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                       <input
                         type="number"
                         min="1"
-                        step="0.01"
+                        step="any"
                         required
                         value={newTCrossConversionFactor}
                         onChange={(e) => setNewTCrossConversionFactor(parseFloat(e.target.value) || 1)}
@@ -1515,8 +1515,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                         type="number"
                         min="0"
                         required
-                        value={newTCrossQuantity}
-                        onChange={(e) => setNewTCrossQuantity(parseInt(e.target.value) || 0)}
+                        value={newTCrossQuantity || ''}
+                        onChange={(e) => setNewTCrossQuantity(parseFloat(e.target.value) || 0)}
                         className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
                       />
                     </div>
@@ -1525,10 +1525,10 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                     <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Cost Per Unit (Rs)</label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       min="0"
                       required
-                      value={newTCrossCost}
+                      value={newTCrossCost || ''}
                       onChange={(e) => setNewTCrossCost(parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono"
                     />
@@ -1607,10 +1607,10 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                   <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Name</label><input type="text" readOnly value="Wall Angle" className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-100 text-slate-800" /></div>
                   <div className="grid grid-cols-2 gap-4">
                     <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Stock Unit</label><input type="text" readOnly value="pieces" className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-100 text-slate-800" /></div>
-                    <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Min. Alert Threshold</label><input type="number" min="0" required value={newWallAngleThreshold} onChange={(e) => setNewWallAngleThreshold(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
+                    <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Min. Alert Threshold</label><input type="number" step="any" min="0" required value={newWallAngleThreshold || ''} onChange={(e) => setNewWallAngleThreshold(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
                   </div>
-                  <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Conversion Factor</label><input type="number" min="1" step="0.01" required value={newWallAngleConversionFactor} onChange={(e) => setNewWallAngleConversionFactor(parseFloat(e.target.value) || 1)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
-                  <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Cost Per Unit (Rs)</label><input type="number" step="0.01" min="0" required value={newWallAngleCost} onChange={(e) => setNewWallAngleCost(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
+                  <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Conversion Factor</label><input type="number" min="1" step="any" required value={newWallAngleConversionFactor || ''} onChange={(e) => setNewWallAngleConversionFactor(parseFloat(e.target.value) || 1)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
+                  <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Cost Per Unit (Rs)</label><input type="number" step="any" min="0" required value={newWallAngleCost || ''} onChange={(e) => setNewWallAngleCost(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
                   <button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-lg text-xs tracking-wider uppercase">Save Wall Angle Settings</button>
                 </form>
                 <div className="rounded-xl border border-slate-100 p-3"><div className="flex items-center justify-between mb-3"><h4 className="font-semibold text-slate-700">Wall Angle Stock</h4><span className="text-[10px] text-slate-400">Single inventory item</span></div><p className="text-[10px] text-slate-400">Current stock: {wallAngles[0]?.quantity.toLocaleString() || 0} pieces</p></div>
@@ -1620,7 +1620,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
         )}
 
         {showWallAngleRestockModal && selectedWallAngle && (
-          <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4 overflow-y-auto"><div className="bg-white rounded-xl shadow-lg w-full max-w-md p-5 my-4"><div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800">Add Wall Angle Stock</h3><button onClick={() => setShowWallAngleRestockModal(false)}><X size={16} /></button></div><form onSubmit={handleRestockWallAngle} className="space-y-4 text-xs"><div><label className="block text-slate-500 font-semibold mb-1">Restock Qty (pieces)</label><input type="number" min="0.01" step="1" required value={wallAngleRestockQty} onChange={(e) => setWallAngleRestockQty(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Inward Date</label><input type="date" required value={wallAngleRestockDate} onChange={(e) => setWallAngleRestockDate(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" /></div><div><label className="block text-slate-500 font-semibold mb-1">Total Procurement Cost (Rs)</label><input type="number" min="0" step="0.01" required value={wallAngleRestockCost} onChange={(e) => setWallAngleRestockCost(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Restock Notes / Memo (optional)</label><textarea value={wallAngleRestockNotes} onChange={(e) => setWallAngleRestockNotes(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" rows={3} /></div><button type="submit" className="w-full bg-orange-600 text-white font-semibold py-2.5 rounded-lg">Add Stock</button></form></div></div>
+          <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4 overflow-y-auto"><div className="bg-white rounded-xl shadow-lg w-full max-w-md p-5 my-4"><div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800">Add Wall Angle Stock</h3><button onClick={() => setShowWallAngleRestockModal(false)}><X size={16} /></button></div><form onSubmit={handleRestockWallAngle} className="space-y-4 text-xs"><div><label className="block text-slate-500 font-semibold mb-1">Restock Qty (pieces)</label><input type="number" min="0.01" step="any" required value={wallAngleRestockQty || ''} onChange={(e) => setWallAngleRestockQty(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Inward Date</label><input type="date" required value={wallAngleRestockDate} onChange={(e) => setWallAngleRestockDate(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" /></div><div><label className="block text-slate-500 font-semibold mb-1">Total Procurement Cost (Rs)</label><input type="number" min="0" step="any" required value={wallAngleRestockCost || ''} onChange={(e) => setWallAngleRestockCost(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Restock Notes / Memo (optional)</label><textarea value={wallAngleRestockNotes} onChange={(e) => setWallAngleRestockNotes(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" rows={3} /></div><button type="submit" className="w-full bg-orange-600 text-white font-semibold py-2.5 rounded-lg">Add Stock</button></form></div></div>
         )}
 
       {showAddMaterialModal && (
@@ -1670,8 +1670,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                     type="number"
                     min="1"
                     required
-                    value={newMatThreshold}
-                    onChange={(e) => setNewMatThreshold(parseInt(e.target.value) || 0)}
+                    value={newMatThreshold || ''}
+                    onChange={(e) => setNewMatThreshold(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                   />
                 </div>
@@ -1683,7 +1683,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                   <input
                     type="number"
                     min="1"
-                    step="0.01"
+                    step="any"
                     required
                     value={newMatConversionFactor}
                     onChange={(e) => setNewMatConversionFactor(parseFloat(e.target.value) || 1)}
@@ -1697,10 +1697,10 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                   <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Cost Per Unit (Rs)</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="any"
                     min="0"
                     required
-                    value={newMatCost}
+                    value={newMatCost || ''}
                     onChange={(e) => setNewMatCost(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                   />
@@ -1714,8 +1714,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                     type="number"
                     min="0"
                     required
-                    value={newMatQuantity}
-                    onChange={(e) => setNewMatQuantity(parseInt(e.target.value) || 0)}
+                    value={newMatQuantity || ''}
+                    onChange={(e) => setNewMatQuantity(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                   />
                 </div>
@@ -1761,9 +1761,9 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Standard Cost (Rs / {editingMaterial.unit})</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="any"
                   required
-                  value={editingMaterial.costPerUnit}
+                  value={editingMaterial.costPerUnit || ''}
                   onChange={(e) => setEditingMaterial({ ...editingMaterial, costPerUnit: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                 />
@@ -1774,8 +1774,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                 <input
                   type="number"
                   required
-                  value={editingMaterial.minThreshold}
-                  onChange={(e) => setEditingMaterial({ ...editingMaterial, minThreshold: parseInt(e.target.value) || 0 })}
+                  value={editingMaterial.minThreshold || ''}
+                  onChange={(e) => setEditingMaterial({ ...editingMaterial, minThreshold: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                 />
               </div>
@@ -1784,10 +1784,10 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Quantity ({editingMaterial.unit})</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="any"
                   min="0"
                   required
-                  value={editingMaterial.quantity}
+                  value={editingMaterial.quantity || ''}
                   onChange={(e) => setEditingMaterial({ ...editingMaterial, quantity: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                 />
@@ -1798,7 +1798,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Conversion Factor ({getConversionLabel(editingMaterial.unit)})</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="any"
                   min="1"
                   required
                   value={editingMaterial.conversionFactor ?? 1}
@@ -1842,8 +1842,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                     type="number"
                     min="1"
                     required
-                    value={panniRestockQty}
-                    onChange={(e) => setPanniRestockQty(parseInt(e.target.value) || 0)}
+                    value={panniRestockQty || ''}
+                    onChange={(e) => setPanniRestockQty(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                   />
                 </div>
@@ -1864,7 +1864,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                   type="number"
                   min="0"
                   required
-                  value={panniRestockCost}
+                  value={panniRestockCost || ''}
                   onChange={(e) => setPanniRestockCost(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                 />
@@ -1911,8 +1911,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                     type="number"
                     min="1"
                     required
-                    value={tCrossRestockQty}
-                    onChange={(e) => setTCrossRestockQty(parseInt(e.target.value) || 0)}
+                    value={tCrossRestockQty || ''}
+                    onChange={(e) => setTCrossRestockQty(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                   />
                 </div>
@@ -1933,7 +1933,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                   type="number"
                   min="0"
                   required
-                  value={tCrossRestockCost}
+                  value={tCrossRestockCost || ''}
                   onChange={(e) => setTCrossRestockCost(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                 />
@@ -2017,8 +2017,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                     type="number"
                     min="1"
                     required
-                    value={restockQty}
-                    onChange={(e) => setRestockQty(parseInt(e.target.value) || 0)}
+                    value={restockQty || ''}
+                    onChange={(e) => setRestockQty(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                   />
                 </div>
@@ -2069,7 +2069,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                   type="number"
                   min="0"
                   required
-                  value={restockCost}
+                  value={restockCost || ''}
                   onChange={(e) => setRestockCost(parseFloat(e.target.value) || 0)}
                   placeholder="Leave as 0 for free adjustment"
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
