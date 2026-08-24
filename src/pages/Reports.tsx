@@ -76,6 +76,8 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
   const suppliers = db.getSuppliers();
   const txs = db.getTransactions();
   const materials = db.getMaterials();
+  const panniTypes = db.getPanniTypes();
+  const hdPaperTypes = db.getHdPaperTypes();
   const tCrosses = db.getTCrosses ? db.getTCrosses() : [];
   const wallAngles = db.getWallAngles ? db.getWallAngles() : [];
 
@@ -133,8 +135,7 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
   const totalDryReceivedToFinal = filteredFinal.reduce((sum, r) => sum + r.dryPlatesReceived, 0);
   const soldQty = filteredSales.reduce((sum, s) => sum + s.quantity, 0);
 
-  const effectiveBaseUnits = Math.max(totalFinalProduced, soldQty, 1);
-  const standardLabourRatePerPlate = 18;
+  const effectiveBaseUnits = Math.max(totalFinalProduced, 1);
   const rawLabourCost = filteredLabour.filter((entry) => entry.type === 'earning').reduce((sum, entry) => {
     const labourValue = entry.plates > 0 ? entry.plates * (entry.ratePerPlate || 0) : entry.amount;
     return sum + labourValue;
@@ -153,7 +154,7 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
     const labourValue = entry.plates > 0 ? entry.plates * (entry.ratePerPlate || 0) : entry.amount;
     return sum + labourValue;
   }, 0);
-  const labourCost = Math.min(rawLabourCost, effectiveBaseUnits * standardLabourRatePerPlate);
+  const labourCost = rawLabourCost;
 
   const stockUsedCost = filteredWet.reduce((sum, record) => {
     const material = materials.find((item) => item.name.toLowerCase().includes('plaster'));
@@ -162,10 +163,15 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
   }, 0) + filteredFinal.reduce((sum, record) => {
     return sum + (record.consumptions || []).reduce((consumptionSum, cons) => {
       const material = materials.find((item) => item.name.toLowerCase() === cons.materialName.toLowerCase());
-      if (!material || !cons.calculatedAmount) return consumptionSum;
-      return consumptionSum + Number(cons.calculatedAmount) * material.costPerUnit;
+      const panni = cons.panniTypeId ? panniTypes.find((item) => item.id === cons.panniTypeId) : undefined;
+      const hdPaper = cons.hdPaperTypeId ? hdPaperTypes.find((item) => item.id === cons.hdPaperTypeId) : undefined;
+      const costPerUnit = material?.costPerUnit || panni?.costPerUnit || hdPaper?.costPerUnit || 0;
+      return consumptionSum + Number(cons.calculatedAmount || 0) * costPerUnit;
     }, 0);
   }, 0);
+
+  const materialCostPerPlate = totalFinalProduced > 0 ? stockUsedCost / totalFinalProduced : 0;
+  const wasteCost = totalWasteQty * materialCostPerPlate;
 
   // T Cross metrics
   const tCrossRemaining = tCrosses.reduce((s, t) => s + t.quantity, 0);
@@ -197,9 +203,9 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
   const remainingFinal = Math.max(0, totalFinalProduced - soldQty);
 
   const revenue = netRevenue;
-  const netProfit = revenue - totalStockUsedCost - totalExpenses - labourCost;
+  const netProfit = revenue - stockUsedCost - accessoryStockUsedCost - wasteCost - totalExpenses - labourCost;
   const labourCostPerPlate = effectiveBaseUnits > 0 ? labourCost / effectiveBaseUnits : 0;
-  const profitPerPlate = effectiveBaseUnits > 0 ? (netProfit + accessoryStockUsedCost) / effectiveBaseUnits : 0;
+  const profitPerPlate = effectiveBaseUnits > 0 ? netProfit / effectiveBaseUnits : 0;
   const totalReceivables = filteredCustomers.reduce((sum, c) => sum + getCustomerOutstandingBalance(c.id), 0);
   const procurementCost = filteredTxs.filter((t) => t.type === 'in').reduce((sum, t) => sum + t.cost, 0);
 
@@ -453,7 +459,7 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
               </div>
               <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 border border-slate-200 mt-2">
                 <span className="font-semibold text-slate-700">Total Cost</span>
-                <span className="font-mono font-bold text-slate-800">{formatCurrency(totalStockUsedCost + labourCost + totalExpenses)}</span>
+                <span className="font-mono font-bold text-slate-800">{formatCurrency(totalStockUsedCost + wasteCost + labourCost + totalExpenses)}</span>
               </div>
             </div>
           </div>

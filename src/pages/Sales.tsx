@@ -82,6 +82,26 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
       return;
     }
 
+    const finalProductionStock = db.getFinalProduction().reduce((sum, record) => sum + record.finalPlatesProduced, 0);
+    const platesAlreadySold = db.getSales().reduce((sum, sale) => sum + sale.quantity, 0);
+    const availablePlates = Math.max(0, finalProductionStock - platesAlreadySold);
+    if (availablePlates <= 0) {
+      setError('There are zero plates in inventory. This invoice cannot be created.');
+      return;
+    }
+    if (quantity > availablePlates) {
+      setError(`Not enough plates in inventory. Available: ${availablePlates.toLocaleString()} pcs.`);
+      return;
+    }
+    if (tCrossFeet > 0 && (!selectedTCross || tCrossFeet > selectedTCross.quantity)) {
+      setError(`Not enough T Cross in inventory. Available: ${selectedTCross?.quantity.toLocaleString() || 0} ${selectedTCross?.unit || 'ft'}.`);
+      return;
+    }
+    if (wallAnglePieces > 0 && (!selectedWallAngle || wallAnglePieces > selectedWallAngle.quantity)) {
+      setError(`Not enough Wall Angle in inventory. Available: ${selectedWallAngle?.quantity.toLocaleString() || 0} ${selectedWallAngle?.unit || 'pcs'}.`);
+      return;
+    }
+
     const selectedCust = customers.find((c) => c.id === customerId);
     if (!selectedCust) return;
 

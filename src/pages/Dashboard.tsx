@@ -32,6 +32,8 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
   const sales = db.getSales();
   const tCrosses = db.getTCrosses ? db.getTCrosses() : [];
   const wallAngles = db.getWallAngles ? db.getWallAngles() : [];
+  const panniTypes = db.getPanniTypes();
+  const hdPaperTypes = db.getHdPaperTypes();
 
   const todayStr = getTodayStr();
 
@@ -53,11 +55,23 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
 
   const totalSalesToday = sales
     .filter((s) => s.date === todayStr)
-    .reduce((sum, item) => sum + item.totalAmount, 0);
+    .reduce((sum, item) => sum + item.grandTotal, 0);
 
   const totalExpensesToday = expenses
     .filter((e) => e.date === todayStr)
     .reduce((sum, item) => sum + item.amount, 0);
+
+  const wetMaterialCostToday = wetProd.filter((record) => record.productionDate === todayStr).reduce((sum, record) => {
+    const plaster = materials.find((item) => item.name.toLowerCase().includes('plaster'));
+    return sum + record.plasterParisUsed * (plaster?.costPerUnit || 0);
+  }, 0);
+  const finalMaterialCostToday = finalProd.filter((record) => record.date === todayStr).reduce((sum, record) => sum + (record.consumptions || []).reduce((consumptionSum, consumption) => {
+    const material = materials.find((item) => item.name.toLowerCase() === consumption.materialName.toLowerCase());
+    const panni = consumption.panniTypeId ? panniTypes.find((item) => item.id === consumption.panniTypeId) : undefined;
+    const hdPaper = consumption.hdPaperTypeId ? hdPaperTypes.find((item) => item.id === consumption.hdPaperTypeId) : undefined;
+    return consumptionSum + Number(consumption.calculatedAmount || 0) * (material?.costPerUnit || panni?.costPerUnit || hdPaper?.costPerUnit || 0);
+  }, 0), 0);
+  const materialCostToday = wetMaterialCostToday + finalMaterialCostToday;
 
   const tCrossCostToday = sales.filter((sale) => sale.date === todayStr).reduce((sum, sale) => {
     const item = tCrosses.find((entry) => entry.id === sale.tCrossTypeId) || tCrosses.find((entry) => entry.name === sale.tCrossTypeName) || tCrosses[0];
@@ -71,13 +85,16 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
   const totalWasteToday = waste
     .filter((w) => w.date === todayStr)
     .reduce((sum, item) => sum + item.quantity, 0);
+  const finalProducedToday = finalProd.filter((record) => record.date === todayStr).reduce((sum, record) => sum + record.finalPlatesProduced, 0);
+  const wasteCostToday = finalProducedToday > 0 ? totalWasteToday * (materialCostToday / finalProducedToday) : 0;
+  const labourCostToday = db.getLabourLedger().filter((entry) => entry.date === todayStr && entry.type === 'earning').reduce((sum, entry) => sum + (entry.plates > 0 ? entry.plates * (entry.ratePerPlate || 0) : entry.amount), 0);
 
   const remainingWetStock = Math.max(0, wetProd.reduce((sum, item) => sum + item.wetPlatesProduced, 0) - dryProd.reduce((sum, item) => sum + item.wetPlatesReceived, 0));
   const remainingDryStock = Math.max(0, dryProd.reduce((sum, item) => sum + item.dryPlatesProduced, 0) - finalProd.reduce((sum, item) => sum + item.dryPlatesReceived, 0));
   const remainingFinalStock = Math.max(0, finalProd.reduce((sum, item) => sum + item.finalPlatesProduced, 0) - sales.reduce((sum, item) => sum + item.quantity, 0));
 
   // Profit / Loss Summary: (All-time or Today? Let's do today first, and show cumulative monthly summary too!)
-  const netProfitToday = totalSalesToday - totalExpensesToday - tCrossCostToday - wallAngleCostToday;
+  const netProfitToday = totalSalesToday - totalExpensesToday - materialCostToday - wasteCostToday - tCrossCostToday - wallAngleCostToday - labourCostToday;
 
   // Let's get past 7 days dates for trend charts
   const last7Days = Array.from({ length: 7 }, (_, i) => getTodayStr(-6 + i));
