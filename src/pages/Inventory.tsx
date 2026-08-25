@@ -70,7 +70,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
 
   // Restock form state
   const [restockQty, setRestockQty] = useState(0);
-  const [restockCost, setRestockCost] = useState(0);
+  const [restockUnitCost, setRestockUnitCost] = useState(0);
   const [restockNotes, setRestockNotes] = useState('');
   const [restockDate, setRestockDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -86,7 +86,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   const [newPanniTypeThreshold, setNewPanniTypeThreshold] = useState(100);
   const [editingPanniType, setEditingPanniType] = useState<PanniType | null>(null);
   const [panniRestockQty, setPanniRestockQty] = useState(0);
-  const [panniRestockCost, setPanniRestockCost] = useState(0);
+  const [panniRestockUnitCost, setPanniRestockUnitCost] = useState(0);
   const [panniRestockDate, setPanniRestockDate] = useState(getTodayStr());
   const [panniRestockNotes, setPanniRestockNotes] = useState('');
 
@@ -98,7 +98,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   const [newHdPaperTypeThreshold, setNewHdPaperTypeThreshold] = useState(100);
   const [editingHdPaperType, setEditingHdPaperType] = useState<HdPaperType | null>(null);
   const [hdPaperRestockQty, setHdPaperRestockQty] = useState(0);
-  const [hdPaperRestockCost, setHdPaperRestockCost] = useState(0);
+  const [hdPaperRestockUnitCost, setHdPaperRestockUnitCost] = useState(0);
   const [hdPaperRestockDate, setHdPaperRestockDate] = useState(getTodayStr());
   const [hdPaperRestockNotes, setHdPaperRestockNotes] = useState('');
 
@@ -111,7 +111,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   const [newTCrossThreshold, setNewTCrossThreshold] = useState(0);
   const [editingTCross, setEditingTCross] = useState<TCross | null>(null);
   const [tCrossRestockQty, setTCrossRestockQty] = useState(0);
-  const [tCrossRestockCost, setTCrossRestockCost] = useState(0);
+  const [tCrossRestockUnitCost, setTCrossRestockUnitCost] = useState(0);
   const [tCrossRestockDate, setTCrossRestockDate] = useState(getTodayStr());
   const [tCrossRestockNotes, setTCrossRestockNotes] = useState('');
 
@@ -123,7 +123,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   const [newWallAngleThreshold, setNewWallAngleThreshold] = useState(0);
   const [editingWallAngle, setEditingWallAngle] = useState<WallAngle | null>(null);
   const [wallAngleRestockQty, setWallAngleRestockQty] = useState(0);
-  const [wallAngleRestockCost, setWallAngleRestockCost] = useState(0);
+  const [wallAngleRestockUnitCost, setWallAngleRestockUnitCost] = useState(0);
   const [wallAngleRestockDate, setWallAngleRestockDate] = useState(getTodayStr());
   const [wallAngleRestockNotes, setWallAngleRestockNotes] = useState('');
 
@@ -439,19 +439,20 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   const handleRestockWallAngle = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedWallAngle || wallAngleRestockQty <= 0) return;
-    const next = wallAngles.map((item) => item.id === selectedWallAngle.id ? { ...item, quantity: item.quantity + wallAngleRestockQty, costPerUnit: wallAngleRestockCost > 0 ? calculateAverageCostPerUnit(item.quantity, item.costPerUnit, wallAngleRestockQty, wallAngleRestockCost) : item.costPerUnit } : item);
+    const procurementCost = wallAngleRestockQty * wallAngleRestockUnitCost;
+    const next = wallAngles.map((item) => item.id === selectedWallAngle.id ? { ...item, quantity: item.quantity + wallAngleRestockQty, costPerUnit: calculateAverageCostPerUnit(item.quantity, item.costPerUnit, wallAngleRestockQty, procurementCost) } : item);
     persistWallAngles(next);
     const updatedTransactions = db.getTransactions();
     updatedTransactions.push({
       id: 'tx_' + Math.random().toString(36).substr(2, 9), materialId: selectedWallAngle.id, materialName: 'Wall Angle', type: 'in',
-      quantity: wallAngleRestockQty, cost: wallAngleRestockCost, date: wallAngleRestockDate,
+      quantity: wallAngleRestockQty, cost: procurementCost, date: wallAngleRestockDate,
       notes: wallAngleRestockNotes.trim() || 'Wall Angle stock restocked', unit: 'pieces',
     });
     db.saveTransactions(updatedTransactions);
     setTransactions(updatedTransactions);
     setSelectedWallAngle(null);
     setWallAngleRestockQty(0);
-    setWallAngleRestockCost(0);
+    setWallAngleRestockUnitCost(0);
     setWallAngleRestockDate(getTodayStr());
     setWallAngleRestockNotes('');
     setShowWallAngleRestockModal(false);
@@ -525,16 +526,17 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
     e.preventDefault();
     if (!selectedPanniType || panniRestockQty <= 0) return;
 
+    const procurementCost = panniRestockQty * panniRestockUnitCost;
     const nextPanniTypes = panniTypes.map((item) => item.id === selectedPanniType.id ? {
       ...item,
       quantity: item.quantity + panniRestockQty,
-      costPerUnit: calculateAverageCostPerUnit(item.quantity, item.costPerUnit, panniRestockQty, panniRestockCost),
+      costPerUnit: calculateAverageCostPerUnit(item.quantity, item.costPerUnit, panniRestockQty, procurementCost),
     } : item);
 
     persistPanniTypes(nextPanniTypes);
     setSelectedPanniType(null);
     setPanniRestockQty(0);
-    setPanniRestockCost(0);
+    setPanniRestockUnitCost(0);
     setPanniRestockDate(getTodayStr());
     setPanniRestockNotes('');
     setShowPanniRestockModal(false);
@@ -545,16 +547,17 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
     e.preventDefault();
     if (!selectedHdPaperType || hdPaperRestockQty <= 0) return;
 
+    const procurementCost = hdPaperRestockQty * hdPaperRestockUnitCost;
     const nextHdPaperTypes = hdPaperTypes.map((item) => item.id === selectedHdPaperType.id ? {
       ...item,
       quantity: item.quantity + hdPaperRestockQty,
-      costPerUnit: calculateAverageCostPerUnit(item.quantity, item.costPerUnit, hdPaperRestockQty, hdPaperRestockCost),
+      costPerUnit: calculateAverageCostPerUnit(item.quantity, item.costPerUnit, hdPaperRestockQty, procurementCost),
     } : item);
 
     persistHdPaperTypes(nextHdPaperTypes);
     setSelectedHdPaperType(null);
     setHdPaperRestockQty(0);
-    setHdPaperRestockCost(0);
+    setHdPaperRestockUnitCost(0);
     setHdPaperRestockDate(getTodayStr());
     setHdPaperRestockNotes('');
     setShowHdPaperRestockModal(false);
@@ -565,16 +568,17 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
     e.preventDefault();
     if (!selectedTCross || tCrossRestockQty <= 0) return;
 
+    const procurementCost = tCrossRestockQty * tCrossRestockUnitCost;
     const next = tCrossTypes.map((item) => item.id === selectedTCross.id ? {
       ...item,
       quantity: item.quantity + tCrossRestockQty,
-      costPerUnit: tCrossRestockCost > 0 ? calculateAverageCostPerUnit(item.quantity, item.costPerUnit, tCrossRestockQty, tCrossRestockCost) : item.costPerUnit,
+      costPerUnit: calculateAverageCostPerUnit(item.quantity, item.costPerUnit, tCrossRestockQty, procurementCost),
     } : item);
 
     persistTCrossTypes(next);
     setSelectedTCross(null);
     setTCrossRestockQty(0);
-    setTCrossRestockCost(0);
+    setTCrossRestockUnitCost(0);
     setTCrossRestockDate(getTodayStr());
     setTCrossRestockNotes('');
     setShowTCrossRestockModal(false);
@@ -667,12 +671,13 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   const handleRestock = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMaterial || restockQty <= 0) return;
+    const procurementCost = restockQty * restockUnitCost;
 
     adjustMaterialStock(
       selectedMaterial.id,
       restockQty,
       'in',
-      restockCost,
+      procurementCost,
       restockDate,
       restockNotes || `Restocked ${restockQty} ${selectedMaterial.unit}`
     );
@@ -685,7 +690,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
       return {
         ...material,
         quantity: material.quantity,
-        costPerUnit: calculateAverageCostPerUnit(selectedMaterial.quantity, selectedMaterial.costPerUnit, restockQty, restockCost),
+        costPerUnit: calculateAverageCostPerUnit(selectedMaterial.quantity, selectedMaterial.costPerUnit, restockQty, procurementCost),
         updatedAt: restockDate,
       };
     });
@@ -700,7 +705,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
         restockDate,
         'Purchase',
         'purchase_' + Math.random().toString(36).substr(2, 9),
-        restockCost,
+        procurementCost,
         0,
         `Stock purchase for ${selectedMaterial.name} (${restockQty} ${selectedMaterial.unit})`
       );
@@ -713,7 +718,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
 
     // Reset
     setRestockQty(0);
-    setRestockCost(0);
+    setRestockUnitCost(0);
     setRestockNotes('');
     setSelectedSupplierId('');
     setShowRestockModal(false);
@@ -902,7 +907,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                                 onClick={() => {
                                   setSelectedPanniType(panniType);
                                   setPanniRestockQty(0);
-                                  setPanniRestockCost(0);
+                                  setPanniRestockUnitCost(panniType.costPerUnit);
                                   setShowPanniRestockModal(true);
                                 }}
                                 className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer"
@@ -996,7 +1001,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                                 onClick={() => {
                                   setSelectedTCross(tc);
                                   setTCrossRestockQty(0);
-                                  setTCrossRestockCost(0);
+                                  setTCrossRestockUnitCost(tc.costPerUnit);
                                   setShowTCrossRestockModal(true);
                                 }}
                                 className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer"
@@ -1054,7 +1059,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                           <td className="py-2.5 px-2 text-right font-mono font-semibold text-slate-800">Rs. {Math.round(item.quantity * item.costPerUnit).toLocaleString()}</td>
                           <td className="py-2.5 px-2 text-center font-mono text-slate-400">{item.minThreshold} {item.unit}</td>
                           <td className="py-2.5 px-2"><div className="flex items-center justify-end gap-1.5">
-                            <button onClick={() => { setSelectedWallAngle(item); setWallAngleRestockQty(0); setWallAngleRestockCost(0); setShowWallAngleRestockModal(true); }} className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer">Add Stock</button>
+                            <button onClick={() => { setSelectedWallAngle(item); setWallAngleRestockQty(0); setWallAngleRestockUnitCost(item.costPerUnit); setShowWallAngleRestockModal(true); }} className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer">Add Stock</button>
                             <button onClick={() => { setEditingWallAngle(item); setNewWallAngleName(item.name); setNewWallAngleUnit(item.unit); setNewWallAngleConversionFactor(item.conversionFactor); setNewWallAngleQuantity(0); setNewWallAngleCost(item.costPerUnit); setNewWallAngleThreshold(item.minThreshold); setShowWallAngleTypeModal(true); }} className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-50" title="Edit Wall Angle"><Edit2 size={12} /></button>
                             <button onClick={() => handleDeleteWallAngle(item.id, item.name)} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Wall Angle"><Trash2 size={12} /></button>
                           </div></td>
@@ -1120,7 +1125,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                                 onClick={() => {
                                   setSelectedHdPaperType(hdPaperType);
                                   setHdPaperRestockQty(0);
-                                  setHdPaperRestockCost(0);
+                                  setHdPaperRestockUnitCost(hdPaperType.costPerUnit);
                                   setShowHdPaperRestockModal(true);
                                 }}
                                 className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer"
@@ -1192,7 +1197,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                               <button
                                 onClick={() => {
                                   setSelectedMaterial(mat);
-                                  setRestockCost(0);
+                                  setRestockUnitCost(mat.costPerUnit);
                                   setRestockQty(0);
                                   setShowRestockModal(true);
                                 }}
@@ -1401,7 +1406,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                           onClick={() => {
                             setSelectedPanniType(item);
                             setPanniRestockQty(0);
-                            setPanniRestockCost(0);
+                            setPanniRestockUnitCost(item.costPerUnit);
                             setShowPanniRestockModal(true);
                           }}
                           className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer"
@@ -1552,7 +1557,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                             onClick={() => {
                               setSelectedTCross(item);
                               setTCrossRestockQty(0);
-                              setTCrossRestockCost(0);
+                              setTCrossRestockUnitCost(item.costPerUnit);
                               setShowTCrossRestockModal(true);
                             }}
                             className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer"
@@ -1617,7 +1622,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
         )}
 
         {showWallAngleRestockModal && selectedWallAngle && (
-          <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4 overflow-y-auto"><div className="bg-white rounded-xl shadow-lg w-full max-w-md p-5 my-4"><div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800">Add Wall Angle Stock</h3><button onClick={() => setShowWallAngleRestockModal(false)}><X size={16} /></button></div><form onSubmit={handleRestockWallAngle} className="space-y-4 text-xs"><div><label className="block text-slate-500 font-semibold mb-1">Restock Qty (pieces)</label><input type="number" min="0.01" step="any" required value={wallAngleRestockQty} onChange={(e) => setWallAngleRestockQty(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Inward Date</label><input type="date" required value={wallAngleRestockDate} onChange={(e) => setWallAngleRestockDate(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" /></div><div><label className="block text-slate-500 font-semibold mb-1">Total Procurement Cost (Rs)</label><input type="number" min="0" step="any" required value={wallAngleRestockCost} onChange={(e) => setWallAngleRestockCost(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Restock Notes / Memo (optional)</label><textarea value={wallAngleRestockNotes} onChange={(e) => setWallAngleRestockNotes(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" rows={3} /></div><button type="submit" className="w-full bg-orange-600 text-white font-semibold py-2.5 rounded-lg">Add Stock</button></form></div></div>
+          <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4 overflow-y-auto"><div className="bg-white rounded-xl shadow-lg w-full max-w-md p-5 my-4"><div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800">Add Wall Angle Stock</h3><button onClick={() => setShowWallAngleRestockModal(false)}><X size={16} /></button></div><form onSubmit={handleRestockWallAngle} className="space-y-4 text-xs"><div><label className="block text-slate-500 font-semibold mb-1">Restock Qty (pieces)</label><input type="number" min="0.01" step="any" required value={wallAngleRestockQty} onChange={(e) => setWallAngleRestockQty(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Inward Date</label><input type="date" required value={wallAngleRestockDate} onChange={(e) => setWallAngleRestockDate(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" /></div><div><label className="block text-slate-500 font-semibold mb-1">Unit Cost (Rs per piece)</label><input type="number" min="0" step="any" required value={wallAngleRestockUnitCost} onChange={(e) => setWallAngleRestockUnitCost(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Procurement Cost (Rs)</label><input type="number" readOnly value={wallAngleRestockQty * wallAngleRestockUnitCost} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-100 font-mono" /></div><div><label className="block text-slate-500 font-semibold mb-1">Restock Notes / Memo (optional)</label><textarea value={wallAngleRestockNotes} onChange={(e) => setWallAngleRestockNotes(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50" rows={3} /></div><button type="submit" className="w-full bg-orange-600 text-white font-semibold py-2.5 rounded-lg">Add Stock</button></form></div></div>
         )}
 
       {showAddMaterialModal && (
@@ -1856,15 +1861,19 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                 </div>
               </div>
               <div>
-                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Total Procurement Cost (Rs)</label>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Unit Cost (Rs per {selectedPanniType.unit})</label>
                 <input
                   type="number"
                   min="0"
                   required
-                  value={panniRestockCost}
-                  onChange={(e) => setPanniRestockCost(parseFloat(e.target.value) || 0)}
+                  value={panniRestockUnitCost}
+                  onChange={(e) => setPanniRestockUnitCost(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                 />
+              </div>
+              <div>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Procurement Cost (Rs)</label>
+                <input type="number" readOnly value={panniRestockQty * panniRestockUnitCost} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-100 text-slate-800 font-mono" />
               </div>
               <div>
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Restock Notes / Memo</label>
@@ -1925,15 +1934,19 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                 </div>
               </div>
               <div>
-                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Total Procurement Cost (Rs)</label>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Unit Cost (Rs per {selectedTCross.unit})</label>
                 <input
                   type="number"
                   min="0"
                   required
-                  value={tCrossRestockCost}
-                  onChange={(e) => setTCrossRestockCost(parseFloat(e.target.value) || 0)}
+                  value={tCrossRestockUnitCost}
+                  onChange={(e) => setTCrossRestockUnitCost(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                 />
+              </div>
+              <div>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Procurement Cost (Rs)</label>
+                <input type="number" readOnly value={tCrossRestockQty * tCrossRestockUnitCost} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-100 text-slate-800 font-mono" />
               </div>
               <div>
                 <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Restock Notes / Memo</label>
@@ -1979,8 +1992,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
         setEditingHdPaperType={setEditingHdPaperType}
         hdPaperRestockQty={hdPaperRestockQty}
         setHdPaperRestockQty={setHdPaperRestockQty}
-        hdPaperRestockCost={hdPaperRestockCost}
-        setHdPaperRestockCost={setHdPaperRestockCost}
+        hdPaperRestockUnitCost={hdPaperRestockUnitCost}
+        setHdPaperRestockUnitCost={setHdPaperRestockUnitCost}
         hdPaperRestockDate={hdPaperRestockDate}
         setHdPaperRestockDate={setHdPaperRestockDate}
         hdPaperRestockNotes={hdPaperRestockNotes}
@@ -2061,17 +2074,21 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
               )}
 
               <div>
-                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Total Procurement Cost (Rs)</label>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Unit Cost (Rs per {selectedMaterial.unit})</label>
                 <input
                   type="number"
                   min="0"
                   required
-                  value={restockCost}
-                  onChange={(e) => setRestockCost(parseFloat(e.target.value) || 0)}
-                  placeholder="Leave as 0 for free adjustment"
+                  value={restockUnitCost}
+                  onChange={(e) => setRestockUnitCost(parseFloat(e.target.value) || 0)}
+                  placeholder="Enter cost per stock unit"
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono"
                 />
-                <p className="text-[10px] text-slate-400 mt-1 font-medium">Automatically recalculates average item cost if greater than zero.</p>
+              </div>
+              <div>
+                <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Procurement Cost (Rs)</label>
+                <input type="number" readOnly value={restockQty * restockUnitCost} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-100 text-slate-800 font-mono" />
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">Calculated from quantity and unit cost; updates the weighted average stock cost.</p>
               </div>
 
               <div>
