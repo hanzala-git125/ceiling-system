@@ -201,7 +201,7 @@ export default function InventoryHdPaperModals({
                             setNewHdPaperTypeName(item.name);
                             setNewHdPaperTypeUnit(item.unit);
                             setNewHdPaperTypeConversionFactor(item.conversionFactor);
-                            setNewHdPaperTypeQuantity(0);
+                            setNewHdPaperTypeQuantity(item.quantity);
                             setNewHdPaperTypeCost(item.costPerUnit);
                             setNewHdPaperTypeThreshold(item.minThreshold);
                             setShowHdPaperTypeModal(true);

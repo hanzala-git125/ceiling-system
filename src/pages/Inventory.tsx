@@ -324,8 +324,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
           ...item,
           name: normalizedName,
           unit: newPanniTypeUnit,
-          quantity: editingPanniType.quantity + newPanniTypeQuantity,
-          costPerUnit: calculateAverageCostPerUnit(editingPanniType.quantity, item.costPerUnit, newPanniTypeQuantity, newPanniTypeQuantity * newPanniTypeCost),
+          quantity: newPanniTypeQuantity,
+          costPerUnit: newPanniTypeCost,
           minThreshold: newPanniTypeThreshold,
           conversionFactor: newPanniTypeConversionFactor > 0 ? newPanniTypeConversionFactor : item.conversionFactor,
         } : item)
@@ -362,8 +362,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
           ...item,
           name: normalizedName,
           unit: newHdPaperTypeUnit,
-          quantity: editingHdPaperType.quantity + newHdPaperTypeQuantity,
-          costPerUnit: calculateAverageCostPerUnit(editingHdPaperType.quantity, item.costPerUnit, newHdPaperTypeQuantity, newHdPaperTypeQuantity * newHdPaperTypeCost),
+          quantity: newHdPaperTypeQuantity,
+          costPerUnit: newHdPaperTypeCost,
           minThreshold: newHdPaperTypeThreshold,
           conversionFactor: newHdPaperTypeConversionFactor > 0 ? newHdPaperTypeConversionFactor : item.conversionFactor,
         } : item)
@@ -400,8 +400,8 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
           ...item,
           name: normalizedName,
           unit: newTCrossUnit,
-          quantity: editingTCross.quantity + newTCrossQuantity,
-          costPerUnit: calculateAverageCostPerUnit(editingTCross.quantity, item.costPerUnit, newTCrossQuantity, newTCrossQuantity * newTCrossCost),
+          quantity: newTCrossQuantity,
+          costPerUnit: newTCrossCost,
           minThreshold: newTCrossThreshold,
           conversionFactor: newTCrossConversionFactor > 0 ? newTCrossConversionFactor : item.conversionFactor,
         } : item)
@@ -425,7 +425,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   const handleCreateOrUpdateWallAngle = (e: React.FormEvent) => {
     e.preventDefault();
     const current = wallAngles[0] || { id: 'wall_angle_' + Math.random().toString(36).substr(2, 9), name: 'Wall Angle', unit: 'pieces', quantity: 0, costPerUnit: 0, minThreshold: 0, conversionFactor: 1, createdAt: getTodayStr() };
-    const next = [{ ...current, name: 'Wall Angle', unit: 'pieces', costPerUnit: newWallAngleCost > 0 ? newWallAngleCost : current.costPerUnit, minThreshold: newWallAngleThreshold, conversionFactor: newWallAngleConversionFactor > 0 ? newWallAngleConversionFactor : current.conversionFactor }];
+    const next = [{ ...current, name: 'Wall Angle', unit: 'pieces', quantity: newWallAngleQuantity, costPerUnit: newWallAngleCost > 0 ? newWallAngleCost : current.costPerUnit, minThreshold: newWallAngleThreshold, conversionFactor: newWallAngleConversionFactor > 0 ? newWallAngleConversionFactor : current.conversionFactor }];
     persistWallAngles(next);
     resetWallAngleForm();
     setShowWallAngleTypeModal(false);
@@ -920,7 +920,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                                   setNewPanniTypeName(panniType.name);
                                   setNewPanniTypeUnit(panniType.unit);
                                   setNewPanniTypeConversionFactor(panniType.conversionFactor);
-                                  setNewPanniTypeQuantity(0);
+                                  setNewPanniTypeQuantity(panniType.quantity);
                                   setNewPanniTypeCost(panniType.costPerUnit);
                                   setNewPanniTypeThreshold(panniType.minThreshold);
                                   setShowPanniTypeModal(true);
@@ -1014,7 +1014,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                                   setNewTCrossName(tc.name);
                                   setNewTCrossUnit(tc.unit);
                                   setNewTCrossConversionFactor(tc.conversionFactor);
-                                  setNewTCrossQuantity(0);
+                                  setNewTCrossQuantity(tc.quantity);
                                   setNewTCrossCost(tc.costPerUnit);
                                   setNewTCrossThreshold(tc.minThreshold);
                                   setShowTCrossTypeModal(true);
@@ -1060,7 +1060,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                           <td className="py-2.5 px-2 text-center font-mono text-slate-400">{item.minThreshold} {item.unit}</td>
                           <td className="py-2.5 px-2"><div className="flex items-center justify-end gap-1.5">
                             <button onClick={() => { setSelectedWallAngle(item); setWallAngleRestockQty(0); setWallAngleRestockUnitCost(item.costPerUnit); setShowWallAngleRestockModal(true); }} className="px-2 py-1 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer">Add Stock</button>
-                            <button onClick={() => { setEditingWallAngle(item); setNewWallAngleName(item.name); setNewWallAngleUnit(item.unit); setNewWallAngleConversionFactor(item.conversionFactor); setNewWallAngleQuantity(0); setNewWallAngleCost(item.costPerUnit); setNewWallAngleThreshold(item.minThreshold); setShowWallAngleTypeModal(true); }} className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-50" title="Edit Wall Angle"><Edit2 size={12} /></button>
+                            <button onClick={() => { setEditingWallAngle(item); setNewWallAngleName(item.name); setNewWallAngleUnit(item.unit); setNewWallAngleConversionFactor(item.conversionFactor); setNewWallAngleQuantity(item.quantity); setNewWallAngleCost(item.costPerUnit); setNewWallAngleThreshold(item.minThreshold); setShowWallAngleTypeModal(true); }} className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-50" title="Edit Wall Angle"><Edit2 size={12} /></button>
                             <button onClick={() => handleDeleteWallAngle(item.id, item.name)} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50" title="Delete Wall Angle"><Trash2 size={12} /></button>
                           </div></td>
                         </tr>
@@ -1138,7 +1138,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                                   setNewHdPaperTypeName(hdPaperType.name);
                                   setNewHdPaperTypeUnit(hdPaperType.unit);
                                   setNewHdPaperTypeConversionFactor(hdPaperType.conversionFactor);
-                                  setNewHdPaperTypeQuantity(0);
+                                  setNewHdPaperTypeQuantity(hdPaperType.quantity);
                                   setNewHdPaperTypeCost(hdPaperType.costPerUnit);
                                   setNewHdPaperTypeThreshold(hdPaperType.minThreshold);
                                   setShowHdPaperTypeModal(true);
@@ -1361,7 +1361,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Opening Stock Qty</label>
+                    <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">{editingPanniType ? 'Current Stock Qty' : 'Opening Stock Qty'}</label>
                     <input
                       type="number"
                       min="0"
@@ -1419,7 +1419,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                             setNewPanniTypeName(item.name);
                             setNewPanniTypeUnit(item.unit);
                             setNewPanniTypeConversionFactor(item.conversionFactor);
-                            setNewPanniTypeQuantity(0);
+                            setNewPanniTypeQuantity(item.quantity);
                             setNewPanniTypeCost(item.costPerUnit);
                             setNewPanniTypeThreshold(item.minThreshold);
                           }}
@@ -1512,7 +1512,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Opening Stock Qty</label>
+                      <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">{editingTCross ? 'Current Stock Qty' : 'Opening Stock Qty'}</label>
                       <input
                         type="number"
                         min="0"
@@ -1570,7 +1570,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                               setNewTCrossName(item.name);
                               setNewTCrossUnit(item.unit);
                               setNewTCrossConversionFactor(item.conversionFactor);
-                              setNewTCrossQuantity(0);
+                              setNewTCrossQuantity(item.quantity);
                               setNewTCrossCost(item.costPerUnit);
                               setNewTCrossThreshold(item.minThreshold);
                             }}
@@ -1612,6 +1612,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
                     <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Min. Alert Threshold</label><input type="number" step="any" min="0" required value={newWallAngleThreshold} onChange={(e) => setNewWallAngleThreshold(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
                   </div>
                   <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Conversion Factor</label><input type="number" min="1" step="any" required value={newWallAngleConversionFactor} onChange={(e) => setNewWallAngleConversionFactor(parseFloat(e.target.value) || 1)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
+                  <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Current Stock Qty (pieces)</label><input type="number" min="0" step="any" required value={newWallAngleQuantity} onChange={(e) => setNewWallAngleQuantity(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
                   <div><label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Cost Per Unit (Rs)</label><input type="number" step="any" min="0" required value={newWallAngleCost} onChange={(e) => setNewWallAngleCost(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-mono" /></div>
                   <button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-lg text-xs tracking-wider uppercase">Save Wall Angle Settings</button>
                 </form>
@@ -1711,7 +1712,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
 
               <div className="grid grid-cols-2 gap-4 border-t border-slate-100/50 pt-3">
                 <div>
-                  <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Opening Stock Qty</label>
+                    <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">{editingHdPaperType ? 'Current Stock Qty' : 'Opening Stock Qty'}</label>
                   <input
                     type="number"
                     min="0"
