@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import connectToDatabase from '../../../lib/mongoose';
 import { WetProduction } from '../../../src/models/WetProduction';
+import { syncRecords } from '../../../lib/sync-records';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -10,11 +11,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const sanitizedData = Array.isArray(data)
       ? data.map(({ maiaUsed: _maiaUsed, ...rest }) => rest)
       : [];
-    await WetProduction.deleteMany({});
-    if (sanitizedData.length > 0) {
-      await WetProduction.insertMany(sanitizedData);
-    }
-    return res.json({ success: true });
+    const count = await syncRecords(WetProduction, sanitizedData);
+    return res.json({ success: true, count });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

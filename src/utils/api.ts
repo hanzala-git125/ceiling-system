@@ -148,12 +148,31 @@ export function saveData<T>(key: string, data: T[]): void {
   const storage = getStorage();
   if (!storage) return;
 
+  let previousData: T[] = [];
+  try {
+    const parsedData = JSON.parse(storage.getItem(key) || '[]');
+    previousData = Array.isArray(parsedData) ? parsedData : [];
+  } catch {
+    previousData = [];
+  }
+
+  const previousById = new Map(
+    previousData
+      .filter((item: any) => item && typeof item.id === 'string')
+      .map((item: any) => [item.id, JSON.stringify(item)])
+  );
+  const changedData = data.filter((item: any) =>
+    !item?.id || previousById.get(item.id) !== JSON.stringify(item)
+  );
+
   storage.setItem(key, JSON.stringify(data));
+
+  if (changedData.length === 0) return;
 
   fetch('/api/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key, data }),
+    body: JSON.stringify({ key, data: changedData }),
   }).catch((err) => {
     console.error(`Failed to push background sync for key ${key}:`, err);
   });

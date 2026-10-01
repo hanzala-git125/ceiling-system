@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import connectToDatabase from '../../../lib/mongoose';
 import { PanniType } from '../../../src/models/PanniType';
+import { syncRecords } from '../../../lib/sync-records';
 
 function sanitizeRawPayload(rawPayload: any) {
   if (Array.isArray(rawPayload)) {
@@ -19,11 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await connectToDatabase();
     const data = sanitizeRawPayload(req.body);
-    await PanniType.deleteMany({});
-    if (Array.isArray(data) && data.length > 0) {
-      await PanniType.insertMany(data);
-    }
-    return res.json({ success: true });
+    const count = await syncRecords(PanniType, data);
+    return res.json({ success: true, count });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

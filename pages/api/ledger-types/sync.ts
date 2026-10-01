@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import connectToDatabase from '../../../lib/mongoose';
 import { HdPaperType } from '../../../src/models/HdPaperType';
+import { syncRecords } from '../../../lib/sync-records';
 
 function sanitizeRawPayload(rawPayload: any) {
   if (Array.isArray(rawPayload)) {
@@ -19,11 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await connectToDatabase();
     const data = sanitizeRawPayload(req.body);
-    await HdPaperType.deleteMany({});
-    if (Array.isArray(data) && data.length > 0) {
-      await HdPaperType.insertMany(data);
-    }
-    return res.json({ success: true });
+    const count = await syncRecords(HdPaperType, data);
+    return res.json({ success: true, count });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
