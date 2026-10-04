@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import connectToDatabase from '../../../lib/mongoose';
 import { SupplierLedgerEntry } from '../../../src/models/SupplierLedgerEntry';
-import { syncRecords } from '../../../lib/sync-records';
 
 function sanitizeRawPayload(rawPayload: any) {
   if (Array.isArray(rawPayload)) {
@@ -20,8 +19,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await connectToDatabase();
     const data = sanitizeRawPayload(req.body);
-    const count = await syncRecords(SupplierLedgerEntry, data);
-    return res.json({ success: true, count });
+    await SupplierLedgerEntry.deleteMany({});
+    if (Array.isArray(data) && data.length > 0) {
+      await SupplierLedgerEntry.insertMany(data);
+    }
+    return res.json({ success: true });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

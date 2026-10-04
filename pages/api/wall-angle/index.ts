@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import connectToDatabase from '../../../lib/mongoose';
 import { WallAngle } from '../../../src/models/WallAngle';
-import { syncRecords } from '../../../lib/sync-records';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -12,8 +11,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
       const payload = req.body;
       if (Array.isArray(payload)) {
-        const count = await syncRecords(WallAngle, payload, false, 'wall_angle_');
-        return res.status(200).json({ success: true, count });
+        await WallAngle.deleteMany({});
+        return res.status(200).json(await WallAngle.insertMany(payload));
       }
       const item = { ...payload };
       if (!item.id) item.id = `wall_angle_${Math.random().toString(36).slice(2, 11)}`;

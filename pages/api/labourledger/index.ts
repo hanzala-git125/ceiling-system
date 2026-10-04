@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import connectToDatabase from '../../../lib/mongoose';
 import { LabourLedgerEntry } from '../../../src/models/LabourLedgerEntry';
-import { syncRecords } from '../../../lib/sync-records';
 
 function sanitizeRawPayload(rawPayload: any) {
   if (Array.isArray(rawPayload)) {
@@ -27,8 +26,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const payload = sanitizeRawPayload(req.body);
 
       if (Array.isArray(payload)) {
-        const count = await syncRecords(LabourLedgerEntry, payload);
-        return res.status(200).json({ success: true, count });
+        await LabourLedgerEntry.deleteMany({});
+        if (payload.length > 0) {
+          await LabourLedgerEntry.insertMany(payload);
+        }
+        return res.status(200).json({ success: true, count: payload.length });
       }
 
       if (payload && typeof payload === 'object') {

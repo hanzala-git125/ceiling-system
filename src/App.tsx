@@ -32,6 +32,22 @@ export default function App() {
 
   useEffect(() => {
     const storage = window.localStorage;
+    const lastBootstrapSync = storage.getItem('factory_erp_bootstrap_synced_at');
+    const hasLocalSeedData = Boolean(
+      storage.getItem('factory_erp_materials') ||
+      storage.getItem('factory_erp_suppliers') ||
+      storage.getItem('factory_erp_customers')
+    );
+
+    if (hasLocalSeedData && lastBootstrapSync) {
+      const ageMs = Date.now() - Number(lastBootstrapSync);
+      if (ageMs < 30_000) {
+        setCurrentUser(getCurrentUser());
+        setIsSyncing(false);
+        return;
+      }
+    }
+
     fetch('/api/bootstrap', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
