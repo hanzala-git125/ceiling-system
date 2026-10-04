@@ -137,6 +137,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const finalArray = Array.from(map.values());
 
+    if (key === KEYS.PANNI_TYPES) {
+      await Promise.all(finalArray.map((item) =>
+        Model.findOneAndUpdate(
+          { id: item.id },
+          { $set: item },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        )
+      ));
+      return res.json({ success: true, count: finalArray.length });
+    }
+
     await Model.deleteMany({});
     if (finalArray.length > 0) {
       try {

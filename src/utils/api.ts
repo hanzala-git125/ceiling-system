@@ -315,6 +315,15 @@ export async function syncPanniTypesToApi(panniTypes: PanniType[]): Promise<Pann
   }
 }
 
+export async function deletePanniTypeFromApi(id: string): Promise<void> {
+  const response = await fetch(`/api/panni-types?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Unable to delete panni type from the API');
+  }
+}
+
 export async function refreshHdPaperTypesFromApi(): Promise<HdPaperType[]> {
   if (typeof window === 'undefined') {
     return getData<HdPaperType>(KEYS.HD_PAPER_TYPES);

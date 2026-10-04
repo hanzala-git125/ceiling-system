@@ -13,6 +13,20 @@ function sanitizeRawPayload(rawPayload: any) {
   return rawPayload;
 }
 
+async function upsertPanniTypes(payload: any[]) {
+  for (const item of payload) {
+    if (!item || typeof item !== 'object') continue;
+    if (!item.id) {
+      item.id = `panni_type_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    await PanniType.findOneAndUpdate(
+      { id: item.id },
+      { $set: item },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await connectToDatabase();
@@ -26,10 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const payload = sanitizeRawPayload(req.body);
 
       if (Array.isArray(payload)) {
-        await PanniType.deleteMany({});
-        if (payload.length > 0) {
-          await PanniType.insertMany(payload);
-        }
+        await upsertPanniTypes(payload);
         return res.status(200).json({ success: true, count: payload.length });
       }
 
@@ -49,6 +60,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       return res.status(400).json({ error: 'Expected a panni type payload or array of panni types.' });
+    }
+
+    if (req.method === 'DELETE') {
+      const id = typeof req.query.id === 'string' ? req.query.id : '';
+      if (!id) return res.status(400).json({ error: 'Missing panni type id.' });
+      const deleted = await PanniType.findOneAndDelete({ id });
+      return res.status(deleted ? 200 : 404).json({ success: Boolean(deleted) });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });

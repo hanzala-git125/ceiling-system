@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CheckSquare, ArrowRight, Eye, Clipboard, Trash2, Edit2, AlertCircle, RefreshCw, CheckCircle, HelpCircle } from 'lucide-react';
-import { db, getTodayStr, adjustMaterialStock, convertFormulaAmountToStock } from '../utils/api';
+import { db, getTodayStr, adjustMaterialStock, convertFormulaAmountToStock, refreshPanniTypesFromApi } from '../utils/api';
 import { FinalProduction, Formula, LabourLedgerEntry, RawMaterial, InventoryTransaction, PanniType, HdPaperType } from '../types';
 import { AppLanguage } from '../utils/i18n';
 
@@ -32,11 +32,12 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
   }, [latestDryProduction?.id]);
 
   useEffect(() => {
-    const existingPanniTypes = db.getPanniTypes();
-    setPanniTypes(existingPanniTypes);
-    if (existingPanniTypes.length > 0 && !selectedPanniTypeId) {
-      setSelectedPanniTypeId(existingPanniTypes[0].id);
-    }
+    void refreshPanniTypesFromApi().then((existingPanniTypes) => {
+      setPanniTypes(existingPanniTypes);
+      if (existingPanniTypes.length > 0) {
+        setSelectedPanniTypeId((currentId) => currentId || existingPanniTypes[0].id);
+      }
+    });
 
     const existingHdPaperTypes = db.getHdPaperTypes();
     setHdPaperTypes(existingHdPaperTypes);

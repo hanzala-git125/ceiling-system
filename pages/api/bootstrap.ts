@@ -18,6 +18,7 @@ import { Supplier } from '../../src/models/Supplier';
 import { SupplierLedgerEntry } from '../../src/models/SupplierLedgerEntry';
 import { Sale } from '../../src/models/Sale';
 import { Payment } from '../../src/models/Payment';
+import { PanniType } from '../../src/models/PanniType';
 import { Operator } from '../../src/models/Operator';
 import { LabourLedgerEntry } from '../../src/models/LabourLedgerEntry';
 
@@ -38,6 +39,7 @@ const KEYS = {
   SUPPLIER_LEDGER: 'factory_erp_supplier_ledger',
   SALES: 'factory_erp_sales',
   PAYMENTS: 'factory_erp_payments',
+  PANNI_TYPES: 'factory_erp_panni_types',
   OPERATORS: 'factory_erp_operators',
   LABOUR_LEDGER: 'factory_erp_labour_ledger',
 };
@@ -71,6 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const supplierledgerentries = await SupplierLedgerEntry.find();
       const sales = await Sale.find();
       const payments = await Payment.find();
+      const panniTypes = await PanniType.find();
       const operators = await Operator.find();
       const labourLedger = await LabourLedgerEntry.find();
 
@@ -91,6 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         [KEYS.SUPPLIER_LEDGER]: supplierledgerentries,
         [KEYS.SALES]: sales,
         [KEYS.PAYMENTS]: payments,
+        [KEYS.PANNI_TYPES]: panniTypes,
         [KEYS.OPERATORS]: operators,
         [KEYS.LABOUR_LEDGER]: labourLedger,
       });
@@ -114,6 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       [KEYS.SUPPLIER_LEDGER]: [],
       [KEYS.SALES]: [],
       [KEYS.PAYMENTS]: [],
+      [KEYS.PANNI_TYPES]: [],
       [KEYS.OPERATORS]: [],
       [KEYS.LABOUR_LEDGER]: [],
     });

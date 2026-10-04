@@ -16,7 +16,7 @@ import {
   ChevronRight,
   Boxes
 } from 'lucide-react';
-import { db, adjustMaterialStock, getConversionLabel, addSupplierLedgerEntry, refreshSuppliersFromApi, refreshHdPaperTypesFromApi, refreshTCrossesFromApi, refreshWallAnglesFromApi, ensureSupplierMaterialAssociation, getTodayStr, INVENTORY_UNITS } from '../utils/api';
+import { db, adjustMaterialStock, getConversionLabel, addSupplierLedgerEntry, refreshSuppliersFromApi, refreshPanniTypesFromApi, deletePanniTypeFromApi, refreshHdPaperTypesFromApi, refreshTCrossesFromApi, refreshWallAnglesFromApi, ensureSupplierMaterialAssociation, getTodayStr, INVENTORY_UNITS } from '../utils/api';
 import { RawMaterial, InventoryTransaction, Supplier, PanniType, HdPaperType, TCross, WallAngle } from '../types';
 import { AppLanguage, getLanguageText } from '../utils/i18n';
 import InventoryHdPaperModals from './InventoryHdPaperModals';
@@ -135,23 +135,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
   }, []);
 
   useEffect(() => {
-    const existingPanniTypes = db.getPanniTypes();
-    if (existingPanniTypes.length === 0) {
-      const defaultPanniType: PanniType = {
-        id: 'pt_' + Math.random().toString(36).substr(2, 9),
-        name: 'Panni Type 1',
-        unit: 'pieces',
-        quantity: 0,
-        costPerUnit: 0,
-        minThreshold: 100,
-        conversionFactor: 1,
-        createdAt: getTodayStr(),
-      };
-      const persisted = db.savePanniTypes([defaultPanniType]);
-      setPanniTypes(persisted);
-    } else {
-      setPanniTypes(existingPanniTypes);
-    }
+    void refreshPanniTypesFromApi().then(setPanniTypes);
   }, []);
 
   useEffect(() => {
@@ -459,24 +443,16 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
     showToast('success', `Stock added to ${selectedWallAngle.name}.`);
   };
 
-  const handleDeletePanniType = (id: string, name: string) => {
+  const handleDeletePanniType = async (id: string, name: string) => {
     if (confirm(`Delete ${name}? This will remove the panni type from the inventory.`)) {
       const remaining = panniTypes.filter((item) => item.id !== id);
-      if (remaining.length === 0) {
-        persistPanniTypes([{
-          id: 'pt_' + Math.random().toString(36).substr(2, 9),
-          name: 'Panni Type 1',
-          unit: 'pieces',
-          quantity: 0,
-          costPerUnit: 0,
-          minThreshold: 100,
-          conversionFactor: 1,
-          createdAt: getTodayStr(),
-        }]);
-      } else {
+      try {
+        await deletePanniTypeFromApi(id);
         persistPanniTypes(remaining);
+        showToast('success', `${name} deleted.`);
+      } catch (error) {
+        showToast('error', `Unable to delete ${name}. Please try again.`);
       }
-      showToast('success', `${name} deleted.`);
     }
   };
 
