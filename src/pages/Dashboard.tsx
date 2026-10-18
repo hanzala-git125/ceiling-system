@@ -65,13 +65,17 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
     const plaster = materials.find((item) => item.name.toLowerCase().includes('plaster'));
     return sum + record.plasterParisUsed * (plaster?.costPerUnit || 0);
   }, 0);
+  const dryPanniMaterialCostToday = dryProd.filter((record) => record.date === todayStr).reduce((sum, record) => sum + (record.panniConsumptions || []).reduce((consumptionSum, consumption) => {
+    const panni = panniTypes.find((item) => item.id === consumption.panniTypeId);
+    return consumptionSum + Number(consumption.calculatedAmount || 0) * (panni?.costPerUnit || 0);
+  }, 0), 0);
   const finalMaterialCostToday = finalProd.filter((record) => record.date === todayStr).reduce((sum, record) => sum + (record.consumptions || []).reduce((consumptionSum, consumption) => {
     const material = materials.find((item) => item.name.toLowerCase() === consumption.materialName.toLowerCase());
     const panni = consumption.panniTypeId ? panniTypes.find((item) => item.id === consumption.panniTypeId) : undefined;
     const hdPaper = consumption.hdPaperTypeId ? hdPaperTypes.find((item) => item.id === consumption.hdPaperTypeId) : undefined;
     return consumptionSum + Number(consumption.calculatedAmount || 0) * (material?.costPerUnit || panni?.costPerUnit || hdPaper?.costPerUnit || 0);
   }, 0), 0);
-  const materialCostToday = wetMaterialCostToday + finalMaterialCostToday;
+  const materialCostToday = wetMaterialCostToday + dryPanniMaterialCostToday + finalMaterialCostToday;
 
   const tCrossCostToday = sales.filter((sale) => sale.date === todayStr).reduce((sum, sale) => {
     const item = tCrosses.find((entry) => entry.id === sale.tCrossTypeId) || tCrosses.find((entry) => entry.name === sale.tCrossTypeName) || tCrosses[0];
@@ -137,7 +141,7 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
       id: 'dry_' + d.id,
       type: 'Dry Production',
       title: `${d.dryPlatesProduced} Dry Plates Ready`,
-      subtitle: `Waste: ${d.wastePlates} plates reported`,
+      subtitle: `Waste: ${d.wastePlates} plates reported${d.panniType ? ` • Panni: ${d.panniType}` : ''}`,
       time: d.date,
       badgeColor: 'bg-amber-50 text-amber-700 border-amber-100',
       tabRef: 'dry-prod'

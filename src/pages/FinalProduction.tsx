@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CheckSquare, ArrowRight, Eye, Clipboard, Trash2, Edit2, AlertCircle, RefreshCw, CheckCircle, HelpCircle } from 'lucide-react';
-import { db, getTodayStr, adjustMaterialStock, convertFormulaAmountToStock, refreshPanniTypesFromApi } from '../utils/api';
-import { FinalProduction, Formula, LabourLedgerEntry, RawMaterial, InventoryTransaction, PanniType, HdPaperType } from '../types';
+import { db, getTodayStr, adjustMaterialStock, convertFormulaAmountToStock } from '../utils/api';
+import { FinalProduction, Formula, LabourLedgerEntry, RawMaterial, InventoryTransaction, HdPaperType } from '../types';
 import { AppLanguage } from '../utils/i18n';
 
 interface FinalProductionPageProps {
@@ -12,9 +12,7 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
   const [records, setRecords] = useState<FinalProduction[]>(db.getFinalProduction());
   const [formulas] = useState<Formula[]>(db.getFormulas());
   const [materials, setMaterials] = useState<RawMaterial[]>(db.getMaterials());
-  const [panniTypes, setPanniTypes] = useState<PanniType[]>(db.getPanniTypes());
   const [hdPaperTypes, setHdPaperTypes] = useState<HdPaperType[]>(db.getHdPaperTypes());
-  const [selectedPanniTypeId, setSelectedPanniTypeId] = useState('');
   const [selectedHdPaperTypeId, setSelectedHdPaperTypeId] = useState('');
   const [selectedOperatorId, setSelectedOperatorId] = useState('');
   const latestDryProduction = [...db.getDryProduction()]
@@ -32,13 +30,6 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
   }, [latestDryProduction?.id]);
 
   useEffect(() => {
-    void refreshPanniTypesFromApi().then((existingPanniTypes) => {
-      setPanniTypes(existingPanniTypes);
-      if (existingPanniTypes.length > 0) {
-        setSelectedPanniTypeId((currentId) => currentId || existingPanniTypes[0].id);
-      }
-    });
-
     const existingHdPaperTypes = db.getHdPaperTypes();
     setHdPaperTypes(existingHdPaperTypes);
     if (existingHdPaperTypes.length > 0 && !selectedHdPaperTypeId) {
@@ -54,7 +45,6 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
   const [error, setError] = useState('');
   const [toast, setToast] = useState<string | null>(null);
 
-  const selectedPanniType = panniTypes.find((item) => item.id === selectedPanniTypeId) ?? null;
   const selectedHdPaperType = hdPaperTypes.find((item) => item.id === selectedHdPaperTypeId) ?? null;
 
   const operators = db.getOperators().filter((operator) => operator.stage === 'final');
@@ -73,38 +63,17 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
   const getConsumptionPreview = (quantity: number) => {
     return formulas
       .filter((form) => !form.materialName.toLowerCase().includes('plaster'))
+      .filter((form) => !form.materialName.toLowerCase().includes('panni'))
       .map((form) => {
         let amountNeeded = form.amount * quantity;
         let unitUsed = form.unit;
         let availableStock = 0;
         let hasEnough = false;
         let displayName = form.materialName;
-        let panniTypeId: string | undefined;
         let hdPaperTypeId: string | undefined;
 
         const normalizedName = form.materialName.toLowerCase();
-        if (normalizedName.includes('panni')) {
-          const panniStock = selectedPanniType;
-          if (panniStock) {
-            const panniMaterial: RawMaterial = {
-              id: panniStock.id,
-              name: form.materialName,
-              quantity: panniStock.quantity,
-              unit: panniStock.unit,
-              costPerUnit: panniStock.costPerUnit,
-              minThreshold: panniStock.minThreshold,
-              conversionFactor: panniStock.conversionFactor,
-              updatedAt: getTodayStr(),
-            };
-            const converted = convertFormulaAmountToStock(amountNeeded, form.unit, panniMaterial);
-            amountNeeded = converted.amount;
-            unitUsed = converted.unit;
-            availableStock = panniStock.quantity;
-            hasEnough = panniStock.quantity >= amountNeeded;
-            displayName = panniStock.name;
-            panniTypeId = panniStock.id;
-          }
-        } else if (normalizedName.includes('hd paper')) {
+        if (normalizedName.includes('hd paper')) {
           const hdPaperStock = selectedHdPaperType;
           if (hdPaperStock) {
             const hdPaperMaterial: RawMaterial = {
@@ -144,7 +113,6 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
           unit: unitUsed,
           availableStock,
           hasEnough,
-          panniTypeId,
           hdPaperTypeId,
           formulaAmountPerPlate: form.amount,
           formulaUnitPerPlate: form.unit,
@@ -170,10 +138,6 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
       setError('Final plates produced cannot exceed dry plates received.');
       return;
     }
-    if (formulas.some((form) => form.materialName.toLowerCase().includes('panni')) && !selectedPanniType) {
-      setError('Please select a panni type before saving this production batch.');
-      return;
-    }
     if (formulas.some((form) => form.materialName.toLowerCase().includes('hd paper')) && !selectedHdPaperType) {
       setError('Please select an HD paper type before saving this production batch.');
       return;
@@ -196,7 +160,6 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
       materialName: p.materialName,
       calculatedAmount: p.calculatedAmount,
       unit: p.unit,
-      panniTypeId: p.panniTypeId,
       hdPaperTypeId: p.hdPaperTypeId,
     }));
 
@@ -206,7 +169,6 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
       dryPlatesReceived: dryReceived,
       finalPlatesProduced: finalProduced,
       notes: notes.trim(),
-      panniType: selectedPanniType?.name,
       hdPaperType: selectedHdPaperType?.name,
       createdAt: getTodayStr(),
       consumptions: finalConsumptions,
@@ -227,18 +189,6 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
         `Automated deduction for final production run: ${finalProduced} plates (Ref: ${activeId})`
       );
     });
-
-    const updatedPanniTypes = [...panniTypes];
-    previewList
-      .filter((item) => item.panniTypeId)
-      .forEach((item) => {
-        const target = updatedPanniTypes.find((panniType) => panniType.id === item.panniTypeId);
-        if (target) {
-          target.quantity -= item.calculatedAmount;
-        }
-      });
-    db.savePanniTypes(updatedPanniTypes);
-    setPanniTypes(updatedPanniTypes);
 
     const updatedHdPaperTypes = [...hdPaperTypes];
     previewList
@@ -317,6 +267,7 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
       const rawMaterials = db.getMaterials();
       const panniStock = db.getPanniTypes();
       const hdPaperStock = db.getHdPaperTypes();
+      const hasLegacyPanniConsumption = rec.consumptions.some((consumption) => consumption.panniTypeId);
       rec.consumptions.forEach((cons) => {
         if (cons.panniTypeId) {
           const panniType = panniStock.find((item) => item.id === cons.panniTypeId);
@@ -337,12 +288,11 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
         }
       });
       db.saveMaterials(rawMaterials);
-      db.savePanniTypes(panniStock);
+      if (hasLegacyPanniConsumption) db.savePanniTypes(panniStock);
       db.saveHdPaperTypes(hdPaperStock);
 
       // Refresh local state after restore
       setMaterials(db.getMaterials());
-      setPanniTypes(db.getPanniTypes());
       setHdPaperTypes(db.getHdPaperTypes());
 
       // Clean transactions matching this production run ref ID
@@ -356,7 +306,6 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
 
       // Refresh states
       setMaterials(db.getMaterials());
-      setPanniTypes(db.getPanniTypes());
       if (selectedRecord?.id === rec.id) setSelectedRecord(null);
 
       triggerToast('Production run reversed. Consumed materials restored to stock.');
@@ -459,21 +408,6 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
                 placeholder="Shift summary, quality check, loader names..."
                 className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800"
               />
-            </div>
-
-            <div>
-              <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Panni Type for This Batch</label>
-              <select
-                value={selectedPanniTypeId}
-                onChange={(e) => setSelectedPanniTypeId(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800"
-              >
-                <option value="">-- Select panni type --</option>
-                {panniTypes.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-              <p className="text-[10px] text-slate-400 mt-1">Choose the panni stock type that should be deducted for this run.</p>
             </div>
 
             <div>
@@ -621,6 +555,11 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
               <p className="text-[10px] text-slate-500 mb-3 font-semibold uppercase tracking-wider">
                 Total Output: <span className="text-slate-800 font-bold font-mono">{selectedRecord.finalPlatesProduced.toLocaleString()} plates</span> | Date: <span className="text-slate-800 font-bold font-mono">{selectedRecord.date}</span>
               </p>
+              {selectedRecord.panniType && (
+                <p className="text-[10px] text-slate-500 mb-3 font-semibold uppercase tracking-wider">
+                  Historical Panni Type: <span className="text-slate-800">{selectedRecord.panniType}</span>
+                </p>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {selectedRecord.consumptions?.map((cons, i) => {
                   const matchingFormula = formulas.find((f) => f.materialName.toLowerCase() === cons.materialName.toLowerCase());

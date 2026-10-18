@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Sun, ArrowRight, Search, Trash2, Edit2, AlertCircle, FileSpreadsheet, X } from 'lucide-react';
-import { db, getTodayStr } from '../utils/api';
-import { DryProduction, LabourLedgerEntry, WasteRecord } from '../types';
+import { db, getTodayStr, convertFormulaAmountToStock, refreshPanniTypesFromApi } from '../utils/api';
+import { DryProduction, LabourLedgerEntry, PanniType, RawMaterial, WasteRecord } from '../types';
 import { AppLanguage } from '../utils/i18n';
 
 interface DryProductionPageProps {
@@ -10,6 +10,9 @@ interface DryProductionPageProps {
 
 export default function DryProductionPage({ language = 'en' }: DryProductionPageProps) {
   const [records, setRecords] = useState<DryProduction[]>(db.getDryProduction());
+  const [formulas] = useState(db.getFormulas());
+  const [panniTypes, setPanniTypes] = useState<PanniType[]>(db.getPanniTypes());
+  const [selectedPanniTypeId, setSelectedPanniTypeId] = useState('');
   const latestWetProduction = [...db.getWetProduction()]
     .sort((a, b) => new Date(b.productionDate).getTime() - new Date(a.productionDate).getTime())[0];
 
@@ -24,6 +27,16 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
       setReceived(latestWetProduction.wetPlatesProduced);
     }
   }, [latestWetProduction?.id]);
+
+  useEffect(() => {
+    void refreshPanniTypesFromApi().then((existingPanniTypes) => {
+      setPanniTypes(existingPanniTypes);
+      if (existingPanniTypes.length > 0) {
+        setSelectedPanniTypeId((currentId) => currentId || existingPanniTypes[0].id);
+      }
+    });
+  }, []);
+
   const [notes, setNotes] = useState('');
 
   // Editing state
@@ -62,6 +75,49 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
       return;
     }
 
+    const panniFormulas = formulas.filter((form) => form.materialName.toLowerCase().includes('panni'));
+    const updatedPanniTypes = db.getPanniTypes().map((item) => ({ ...item }));
+    (editingRecord?.panniConsumptions || []).forEach((consumption) => {
+      const previousType = updatedPanniTypes.find((item) => item.id === consumption.panniTypeId);
+      if (previousType) previousType.quantity += consumption.calculatedAmount;
+    });
+
+    const selectedPanniType = updatedPanniTypes.find((item) => item.id === selectedPanniTypeId);
+    if (panniFormulas.length > 0 && !selectedPanniType) {
+      setError('Please select a panni type before saving this dry production batch.');
+      return;
+    }
+
+    const panniConsumptions = selectedPanniType
+      ? panniFormulas.map((form) => {
+          const amountNeeded = form.amount * produced;
+          const panniMaterial: RawMaterial = {
+            id: selectedPanniType.id,
+            name: selectedPanniType.name,
+            quantity: selectedPanniType.quantity,
+            unit: selectedPanniType.unit,
+            costPerUnit: selectedPanniType.costPerUnit,
+            minThreshold: selectedPanniType.minThreshold,
+            conversionFactor: selectedPanniType.conversionFactor,
+            updatedAt: getTodayStr(),
+          };
+          const converted = convertFormulaAmountToStock(amountNeeded, form.unit, panniMaterial);
+          return {
+            materialName: form.materialName,
+            calculatedAmount: Math.round(converted.amount * 1000) / 1000,
+            unit: converted.unit,
+            panniTypeId: selectedPanniType.id,
+          };
+        })
+      : [];
+
+    const requiredPanniStock = panniConsumptions.reduce((sum, consumption) => sum + consumption.calculatedAmount, 0);
+    if (selectedPanniType && selectedPanniType.quantity < requiredPanniStock) {
+      setError(`Insufficient ${selectedPanniType.name} stock. Need ${requiredPanniStock.toLocaleString()} ${selectedPanniType.unit}, have ${selectedPanniType.quantity.toLocaleString()} ${selectedPanniType.unit}.`);
+      return;
+    }
+    if (selectedPanniType) selectedPanniType.quantity -= requiredPanniStock;
+
     const calculatedWaste = received - produced;
     const activeId = editingRecord ? editingRecord.id : 'dry_' + Math.random().toString(36).substr(2, 9);
 
@@ -72,8 +128,16 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
       dryPlatesProduced: produced,
       wastePlates: calculatedWaste,
       notes: notes.trim(),
+      panniTypeId: selectedPanniType?.id,
+      panniType: selectedPanniType?.name,
+      panniConsumptions,
       createdAt: editingRecord ? editingRecord.createdAt : getTodayStr(),
     };
+
+    if (editingRecord?.panniConsumptions?.length || panniConsumptions.length > 0) {
+      db.savePanniTypes(updatedPanniTypes);
+      setPanniTypes(updatedPanniTypes);
+    }
 
     // Save Dry production
     let newDryRecords: DryProduction[];
@@ -151,11 +215,23 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
     setDate(rec.date);
     setReceived(rec.wetPlatesReceived);
     setProduced(rec.dryPlatesProduced);
+    setSelectedPanniTypeId(rec.panniTypeId || '');
     setNotes(rec.notes || '');
   };
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this dry production run? Associated waste tracking will also be cleaned.')) {
+      const deletedRecord = records.find((record) => record.id === id);
+      const updatedPanniTypes = db.getPanniTypes().map((item) => ({ ...item }));
+      (deletedRecord?.panniConsumptions || []).forEach((consumption) => {
+        const panniType = updatedPanniTypes.find((item) => item.id === consumption.panniTypeId);
+        if (panniType) panniType.quantity += consumption.calculatedAmount;
+      });
+      if (deletedRecord?.panniConsumptions?.length) {
+        db.savePanniTypes(updatedPanniTypes);
+        setPanniTypes(updatedPanniTypes);
+      }
+
       const updatedDry = records.filter((r) => r.id !== id);
       db.saveDryProduction(updatedDry);
       setRecords(updatedDry);
@@ -267,6 +343,20 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
             </div>
 
             <div>
+              <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Panni Type</label>
+              <select
+                value={selectedPanniTypeId}
+                onChange={(e) => setSelectedPanniTypeId(e.target.value)}
+                required={formulas.some((form) => form.materialName.toLowerCase().includes('panni'))}
+                className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800"
+              >
+                <option value="">-- Select panni type --</option>
+                {panniTypes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+              <p className="text-[10px] text-slate-400 mt-1">Panni stock is recorded against dry output using the active formula.</p>
+            </div>
+
+            <div>
               <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Operator</label>
               <select value={selectedOperatorId} onChange={(e) => setSelectedOperatorId(e.target.value)} className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800">
                 <option value="">-- Select dry operator --</option>
@@ -333,6 +423,7 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
                   <th className="py-3 px-2 text-right">Wet Received</th>
                   <th className="py-3 px-2 text-right">Dry Produced</th>
                   <th className="py-3 px-2 text-right">Breakage Waste</th>
+                  <th className="py-3 px-2">Panni Type</th>
                   <th className="py-3 px-2">Operator Notes</th>
                   <th className="py-3 px-2 text-right">Actions</th>
                 </tr>
@@ -355,6 +446,14 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
                           {rec.wastePlates.toLocaleString()}
                         </span>{' '}
                         <span className="text-[10px] font-normal text-slate-400">pcs</span>
+                      </td>
+                      <td className="py-3 px-2 text-slate-600">
+                        {rec.panniType || '—'}
+                        {rec.panniConsumptions?.map((consumption, index) => (
+                          <span key={`${consumption.panniTypeId}-${index}`} className="block text-[10px] text-slate-400">
+                            {consumption.calculatedAmount.toLocaleString()} {consumption.unit}
+                          </span>
+                        ))}
                       </td>
                       <td className="py-3 px-2 text-slate-500 max-w-37.5 truncate" title={rec.notes}>
                         {rec.notes || '—'}
@@ -381,7 +480,7 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400">
+                    <td colSpan={7} className="py-8 text-center text-slate-400">
                       No drying records found for selected filter.
                     </td>
                   </tr>

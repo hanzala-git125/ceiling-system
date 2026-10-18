@@ -239,29 +239,6 @@ export async function refreshTCrossesFromApi(): Promise<TCross[]> {
   }
 }
 
-export async function syncTCrossesToApi(items: TCross[]): Promise<TCross[]> {
-  if (typeof window === 'undefined') {
-    return items;
-  }
-
-  try {
-    const response = await fetch('/api/t-cross', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(items),
-    });
-
-    if (!response.ok) {
-      throw new Error('Unable to sync T Cross types to the API');
-    }
-
-    return items;
-  } catch (error) {
-    console.error('Failed to sync T Cross types to API:', error);
-    return items;
-  }
-}
-
 export async function refreshWallAnglesFromApi(): Promise<WallAngle[]> {
   if (typeof window === 'undefined') return getData<WallAngle>(KEYS.WALL_ANGLE_TYPES);
   try {
@@ -275,21 +252,6 @@ export async function refreshWallAnglesFromApi(): Promise<WallAngle[]> {
     console.error('Failed to refresh Wall Angle items from API:', error);
     return getData<WallAngle>(KEYS.WALL_ANGLE_TYPES);
   }
-}
-
-export async function syncWallAnglesToApi(items: WallAngle[]): Promise<WallAngle[]> {
-  if (typeof window === 'undefined') return items;
-  try {
-    const response = await fetch('/api/wall-angle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(items),
-    });
-    if (!response.ok) throw new Error('Unable to sync Wall Angle items to the API');
-  } catch (error) {
-    console.error('Failed to sync Wall Angle items to API:', error);
-  }
-  return items;
 }
 
 export async function syncPanniTypesToApi(panniTypes: PanniType[]): Promise<PanniType[]> {
@@ -625,13 +587,11 @@ export const db = {
   getTCrosses: () => getData<TCross>(KEYS.TCROSS_TYPES),
   saveTCrosses: (data: TCross[]) => {
     saveData<TCross>(KEYS.TCROSS_TYPES, data);
-    void syncTCrossesToApi(data);
     return data;
   },
   getWallAngles: () => getData<WallAngle>(KEYS.WALL_ANGLE_TYPES),
   saveWallAngles: (data: WallAngle[]) => {
     saveData<WallAngle>(KEYS.WALL_ANGLE_TYPES, data);
-    void syncWallAnglesToApi(data);
     return data;
   },
 };

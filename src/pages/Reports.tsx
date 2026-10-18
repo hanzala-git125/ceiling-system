@@ -108,7 +108,7 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
   const filteredExpenses = expenses.filter((e) => isWithinRange(e.date) && matchesSearch(`${e.category} ${e.description}`));
   const filteredWaste = waste.filter((w) => isWithinRange(w.date) && matchesSearch(w.notes));
   const filteredWet = wet.filter((w) => isWithinRange(w.productionDate));
-  const filteredDry = dry.filter((d) => isWithinRange(d.date));
+  const filteredDry = dry.filter((d) => isWithinRange(d.date) && matchesSearch(`${d.date} ${d.panniType || ''} ${d.notes || ''}`));
   const filteredFinal = final.filter((f) => isWithinRange(f.date));
   const filteredCustomers = customers.filter((c) => matchesSearch(`${c.name} ${c.phone} ${c.address}`));
   const filteredTxs = txs.filter((t) => isWithinRange(t.date) && matchesSearch(`${t.materialName} ${t.notes}`));
@@ -160,6 +160,11 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
     const material = materials.find((item) => item.name.toLowerCase().includes('plaster'));
     if (!material || record.plasterParisUsed <= 0) return sum;
     return sum + record.plasterParisUsed * material.costPerUnit;
+  }, 0) + filteredDry.reduce((sum, record) => {
+    return sum + (record.panniConsumptions || []).reduce((consumptionSum, consumption) => {
+      const panni = panniTypes.find((item) => item.id === consumption.panniTypeId);
+      return consumptionSum + Number(consumption.calculatedAmount || 0) * (panni?.costPerUnit || 0);
+    }, 0);
   }, 0) + filteredFinal.reduce((sum, record) => {
     return sum + (record.consumptions || []).reduce((consumptionSum, cons) => {
       const material = materials.find((item) => item.name.toLowerCase() === cons.materialName.toLowerCase());
@@ -525,6 +530,19 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
                 <p className="font-mono font-bold text-slate-800 mt-1">{totalFinalProduced.toLocaleString()} pcs</p>
               </div>
             </div>
+            {filteredDry.some((record) => record.panniType) && (
+              <div className="mt-3 border-t border-slate-100 pt-3 text-xs">
+                <p className="text-slate-400 uppercase mb-2">Panni Type by Dry Batch</p>
+                <div className="space-y-1">
+                  {filteredDry.filter((record) => record.panniType).map((record) => (
+                    <div key={record.id} className="flex items-center justify-between gap-3">
+                      <span className="text-slate-600">{record.date} · {record.dryPlatesProduced.toLocaleString()} pcs</span>
+                      <span className="font-semibold text-slate-800">{record.panniType}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

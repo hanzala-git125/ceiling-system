@@ -82,6 +82,14 @@ export interface DryProduction {
   dryPlatesProduced: number;
   wastePlates: number; // Auto calculated: Received - Produced
   notes?: string;
+  panniTypeId?: string;
+  panniType?: string;
+  panniConsumptions?: {
+    materialName: string;
+    calculatedAmount: number;
+    unit: string;
+    panniTypeId: string;
+  }[];
   createdAt: string;
 }
 
