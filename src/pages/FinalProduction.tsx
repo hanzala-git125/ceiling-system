@@ -76,17 +76,7 @@ export default function FinalProductionPage({ language = 'en' }: FinalProduction
         if (normalizedName.includes('hd paper')) {
           const hdPaperStock = selectedHdPaperType;
           if (hdPaperStock) {
-            const hdPaperMaterial: RawMaterial = {
-              id: hdPaperStock.id,
-              name: form.materialName,
-              quantity: hdPaperStock.quantity,
-              unit: hdPaperStock.unit,
-              costPerUnit: hdPaperStock.costPerUnit,
-              minThreshold: hdPaperStock.minThreshold,
-              conversionFactor: hdPaperStock.conversionFactor,
-              updatedAt: getTodayStr(),
-            };
-            const converted = convertFormulaAmountToStock(amountNeeded, form.unit, hdPaperMaterial);
+            const converted = convertFormulaAmountToStock(amountNeeded, form.unit, hdPaperStock);
             amountNeeded = converted.amount;
             unitUsed = converted.unit;
             availableStock = hdPaperStock.quantity;

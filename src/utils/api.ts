@@ -292,13 +292,16 @@ export async function refreshHdPaperTypesFromApi(): Promise<HdPaperType[]> {
   }
 
   try {
-    const response = await fetch('/api/ledger-types', { cache: 'no-store' });
+    const response = await fetch('/api/hd-paper-types', { cache: 'no-store' });
     if (!response.ok) {
       throw new Error('Unable to load HD paper types from the API');
     }
 
     const payload = await response.json();
     const types = Array.isArray(payload) ? payload : [];
+    if (types.length === 0) {
+      return getData<HdPaperType>(KEYS.HD_PAPER_TYPES);
+    }
     const storage = getStorage();
     if (storage) {
       storage.setItem(KEYS.HD_PAPER_TYPES, JSON.stringify(types));
@@ -310,13 +313,22 @@ export async function refreshHdPaperTypesFromApi(): Promise<HdPaperType[]> {
   }
 }
 
+export async function deleteHdPaperTypeFromApi(id: string): Promise<void> {
+  const response = await fetch(`/api/hd-paper-types?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Unable to delete HD paper type from the API');
+  }
+}
+
 export async function syncHdPaperTypesToApi(hdPaperTypes: HdPaperType[]): Promise<HdPaperType[]> {
   if (typeof window === 'undefined') {
     return hdPaperTypes;
   }
 
   try {
-    const response = await fetch('/api/ledger-types', {
+    const response = await fetch('/api/hd-paper-types', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(hdPaperTypes),
@@ -580,7 +592,10 @@ export const db = {
 
   getHdPaperTypes: () => getData<HdPaperType>(KEYS.HD_PAPER_TYPES),
   saveHdPaperTypes: (data: HdPaperType[]) => {
-    saveData<HdPaperType>(KEYS.HD_PAPER_TYPES, data);
+    const storage = getStorage();
+    if (storage) {
+      storage.setItem(KEYS.HD_PAPER_TYPES, JSON.stringify(data));
+    }
     void syncHdPaperTypesToApi(data);
     return data;
   },
@@ -608,7 +623,9 @@ export function getConversionLabel(unit: string): string {
   return 'Units per stock item';
 }
 
-export function getMaterialConversionFactor(material: RawMaterial | null | undefined): number {
+type ConvertibleStock = Pick<RawMaterial, 'name' | 'unit' | 'conversionFactor'>;
+
+export function getMaterialConversionFactor(material: ConvertibleStock | null | undefined): number {
   if (!material) return 1;
   if (typeof material.conversionFactor === 'number' && material.conversionFactor > 0) {
     return material.conversionFactor;
@@ -629,7 +646,7 @@ export function getMaterialConversionFactor(material: RawMaterial | null | undef
   return 1;
 }
 
-export function convertFormulaAmountToStock(amount: number, formulaUnit: string, material: RawMaterial | null | undefined) {
+export function convertFormulaAmountToStock(amount: number, formulaUnit: string, material: ConvertibleStock | null | undefined) {
   const normalizedFormulaUnit = formulaUnit?.toLowerCase() || '';
   const normalizedMaterialUnit = material?.unit?.toLowerCase() || '';
   const conversionFactor = getMaterialConversionFactor(material);

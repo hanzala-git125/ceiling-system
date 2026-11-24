@@ -16,7 +16,7 @@ import {
   ChevronRight,
   Boxes
 } from 'lucide-react';
-import { db, adjustMaterialStock, getConversionLabel, addSupplierLedgerEntry, refreshSuppliersFromApi, refreshPanniTypesFromApi, deletePanniTypeFromApi, refreshHdPaperTypesFromApi, refreshTCrossesFromApi, refreshWallAnglesFromApi, ensureSupplierMaterialAssociation, getTodayStr, INVENTORY_UNITS } from '../utils/api';
+import { db, adjustMaterialStock, getConversionLabel, addSupplierLedgerEntry, refreshSuppliersFromApi, refreshPanniTypesFromApi, deletePanniTypeFromApi, refreshHdPaperTypesFromApi, deleteHdPaperTypeFromApi, refreshTCrossesFromApi, refreshWallAnglesFromApi, ensureSupplierMaterialAssociation, getTodayStr, INVENTORY_UNITS } from '../utils/api';
 import { RawMaterial, InventoryTransaction, Supplier, PanniType, HdPaperType, TCross, WallAngle } from '../types';
 import { AppLanguage, getLanguageText } from '../utils/i18n';
 import InventoryHdPaperModals from './InventoryHdPaperModals';
@@ -140,22 +140,7 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
 
   useEffect(() => {
     const existingHdPaperTypes = db.getHdPaperTypes();
-    if (existingHdPaperTypes.length === 0) {
-      const defaultHdPaperType: HdPaperType = {
-        id: 'hdpt_' + Math.random().toString(36).substr(2, 9),
-        name: 'HD Paper Type 1',
-        unit: 'pieces',
-        quantity: 0,
-        costPerUnit: 0,
-        minThreshold: 100,
-        conversionFactor: 1,
-        createdAt: getTodayStr(),
-      };
-      const persisted = db.saveHdPaperTypes([defaultHdPaperType]);
-      setHdPaperTypes(persisted);
-    } else {
-      setHdPaperTypes(existingHdPaperTypes);
-    }
+    setHdPaperTypes(existingHdPaperTypes);
 
     void refreshHdPaperTypesFromApi().then((apiTypes) => {
       if (apiTypes.length > 0) {
@@ -456,24 +441,17 @@ export default function Inventory({ language = 'en' }: InventoryProps) {
     }
   };
 
-  const handleDeleteHdPaperType = (id: string, name: string) => {
+  const handleDeleteHdPaperType = async (id: string, name: string) => {
     if (confirm(`Delete ${name}? This will remove the HD paper type from the inventory.`)) {
       const remaining = hdPaperTypes.filter((item) => item.id !== id);
-      if (remaining.length === 0) {
-        persistHdPaperTypes([{
-          id: 'hdpt_' + Math.random().toString(36).substr(2, 9),
-          name: 'HD Paper Type 1',
-          unit: 'pieces',
-          quantity: 0,
-          costPerUnit: 0,
-          minThreshold: 100,
-          conversionFactor: 1,
-          createdAt: getTodayStr(),
-        }]);
-      } else {
-        persistHdPaperTypes(remaining);
+      try {
+        await deleteHdPaperTypeFromApi(id);
+        db.saveHdPaperTypes(remaining);
+        setHdPaperTypes(remaining);
+        showToast('success', `${name} deleted.`);
+      } catch (error) {
+        showToast('error', `Unable to delete ${name}. Please try again.`);
       }
-      showToast('success', `${name} deleted.`);
     }
   };
 

@@ -137,6 +137,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const finalArray = Array.from(map.values());
 
+    if (key === KEYS.HD_PAPER_TYPES) {
+      await Promise.all(finalArray.map((item) =>
+        HdPaperType.findOneAndUpdate(
+          { id: item.id },
+          { $set: item },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        )
+      ));
+      return res.json({ success: true, count: finalArray.length });
+    }
+
     if (key === KEYS.PANNI_TYPES) {
       await Promise.all(finalArray.map((item) =>
         Model.findOneAndUpdate(

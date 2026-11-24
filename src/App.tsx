@@ -54,6 +54,9 @@ export default function App() {
         if (data && typeof data === 'object') {
           Object.entries(data).forEach(([key, val]) => {
             if (key !== 'factory_erp_user') {
+              if (key === 'factory_erp_hd_paper_types' && Array.isArray(val) && val.length === 0 && storage.getItem(key) !== null) {
+                return;
+              }
               localStorage.setItem(key, JSON.stringify(val));
             }
           });
