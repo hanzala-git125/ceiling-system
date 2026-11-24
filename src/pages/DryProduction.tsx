@@ -20,11 +20,15 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
   const [date, setDate] = useState(getTodayStr());
   const [received, setReceived] = useState<number>(latestWetProduction?.wetPlatesProduced ?? 1000);
   const [produced, setProduced] = useState<number>(980);
+  const [wastePlates, setWastePlates] = useState<number>(Math.max(0, (latestWetProduction?.wetPlatesProduced ?? 1000) - 980));
+  const [wasteManuallyEdited, setWasteManuallyEdited] = useState(false);
   const [selectedOperatorId, setSelectedOperatorId] = useState('');
 
   useEffect(() => {
     if (latestWetProduction) {
       setReceived(latestWetProduction.wetPlatesProduced);
+      setWastePlates(Math.max(0, latestWetProduction.wetPlatesProduced - produced));
+      setWasteManuallyEdited(false);
     }
   }, [latestWetProduction?.id]);
 
@@ -55,8 +59,7 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Dry entry math helper
-  const wastePlatesCalculated = Math.max(0, received - produced);
+  const wetPlatesReturned = Math.max(0, received - produced - wastePlates);
 
   const handleSaveEntry = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +75,10 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
     }
     if (produced > received) {
       setError('Dry plates produced cannot exceed the number of wet plates received.');
+      return;
+    }
+    if (wastePlates < 0 || produced + wastePlates > received) {
+      setError('Dry plates produced and waste cannot exceed the number of wet plates received.');
       return;
     }
 
@@ -118,7 +125,6 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
     }
     if (selectedPanniType) selectedPanniType.quantity -= requiredPanniStock;
 
-    const calculatedWaste = received - produced;
     const activeId = editingRecord ? editingRecord.id : 'dry_' + Math.random().toString(36).substr(2, 9);
 
     const updatedRecord: DryProduction = {
@@ -126,7 +132,8 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
       date,
       wetPlatesReceived: received,
       dryPlatesProduced: produced,
-      wastePlates: calculatedWaste,
+      wastePlates,
+      wetPlatesReturned,
       notes: notes.trim(),
       panniTypeId: selectedPanniType?.id,
       panniType: selectedPanniType?.name,
@@ -153,12 +160,12 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
     const wasteRecords = db.getWasteRecords();
     const existingWasteIndex = wasteRecords.findIndex((w) => w.id === 'waste_' + activeId);
 
-    if (calculatedWaste > 0) {
+    if (wastePlates > 0) {
       const updatedWaste: WasteRecord = {
         id: 'waste_' + activeId,
         date,
         source: 'dry',
-        quantity: calculatedWaste,
+        quantity: wastePlates,
         notes: `Breakage during drying. Dry Entry Ref: ${activeId}. ${notes.trim()}`,
         createdAt: getTodayStr(),
       };
@@ -205,6 +212,8 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
     // Reset Form
     setReceived(1000);
     setProduced(980);
+    setWastePlates(20);
+    setWasteManuallyEdited(false);
     setNotes('');
     setEditingRecord(null);
     triggerToast(editingRecord ? 'Dry production record updated.' : 'Dry production record committed.');
@@ -215,6 +224,8 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
     setDate(rec.date);
     setReceived(rec.wetPlatesReceived);
     setProduced(rec.dryPlatesProduced);
+    setWastePlates(rec.wastePlates);
+    setWasteManuallyEdited(true);
     setSelectedPanniTypeId(rec.panniTypeId || '');
     setNotes(rec.notes || '');
   };
@@ -248,6 +259,8 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
     setEditingRecord(null);
     setReceived(1000);
     setProduced(980);
+    setWastePlates(20);
+    setWasteManuallyEdited(false);
     setNotes('');
   };
 
@@ -317,7 +330,11 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
                   min="1"
                   required
                   value={received}
-                  onChange={(e) => setReceived(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const nextReceived = parseFloat(e.target.value) || 0;
+                    setReceived(nextReceived);
+                    if (!wasteManuallyEdited) setWastePlates(Math.max(0, nextReceived - produced));
+                  }}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold"
                 />
               </div>
@@ -328,18 +345,33 @@ export default function DryProductionPage({ language = 'en' }: DryProductionPage
                   min="1"
                   required
                   value={produced}
-                  onChange={(e) => setProduced(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const nextProduced = parseFloat(e.target.value) || 0;
+                    setProduced(nextProduced);
+                    if (!wasteManuallyEdited) setWastePlates(Math.max(0, received - nextProduced));
+                  }}
                   className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold"
                 />
               </div>
             </div>
 
-            {/* Live calculated waste display */}
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100/60 flex items-center justify-between font-sans">
-              <span className="font-semibold text-slate-500">Auto calculated Waste:</span>
-              <span className={`font-mono font-extrabold text-sm ${wastePlatesCalculated > 0 ? 'text-amber-600' : 'text-slate-700'}`}>
-                {wastePlatesCalculated} pieces
-              </span>
+            <div>
+              <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Waste Plates (pcs)</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                required
+                value={wastePlates}
+                onChange={(e) => {
+                  setWastePlates(parseFloat(e.target.value) || 0);
+                  setWasteManuallyEdited(true);
+                }}
+                className="w-full px-3 py-2 border border-slate-100 rounded-lg bg-slate-50 text-slate-800 font-mono font-bold"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Unused wet plates returned to available stock: {wetPlatesReturned.toLocaleString()} pcs
+              </p>
             </div>
 
             <div>

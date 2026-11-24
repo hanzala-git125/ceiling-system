@@ -3,6 +3,7 @@ import { Users, Search, Plus, Trash2, Edit2, AlertCircle, CheckCircle, FileText,
 import { db, getTodayStr, addLedgerEntry, getCustomerOutstandingBalance, deleteLedgerByReference, deleteCustomerLedgerEntry } from '../utils/api';
 import { Customer, CustomerLedgerEntry, Payment } from '../types';
 import { AppLanguage } from '../utils/i18n';
+import { downloadCustomerLedgerPdf } from '../utils/ledgerPdf';
 
 interface CustomersPageProps {
   language?: AppLanguage;
@@ -333,7 +334,7 @@ export default function CustomersPage({ language = 'en' }: CustomersPageProps) {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className={`text-right rounded-xl border px-3 py-2 ${customerOutstanding > 0 ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
                     <p className={`text-[10px] font-semibold uppercase tracking-wide ${customerOutstanding > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                       {customerOutstanding > 0 ? 'Customer still owes you' : 'Nothing pending'}
@@ -345,6 +346,13 @@ export default function CustomersPage({ language = 'en' }: CustomersPageProps) {
                       {customerOutstanding > 0 ? 'Record payment when the customer settles their balance.' : 'This customer account is fully settled.'}
                     </p>
                   </div>
+                  <button
+                    onClick={() => downloadCustomerLedgerPdf(selectedCustomer, selectedLedgerEntries, customerOutstanding)}
+                    className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm"
+                  >
+                    <FileText size={13} />
+                    Download PDF
+                  </button>
                   <button
                     onClick={() => {
                       setPaymentAmount(0);

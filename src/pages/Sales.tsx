@@ -23,7 +23,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
   const [customerId, setCustomerId] = useState('');
   const [date, setDate] = useState(getTodayStr());
   const [plateType, setPlateType] = useState('Plate 2*2');
-  const [customRate, setCustomRate] = useState<number>(15.30);
+  const [customRate, setCustomRate] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1000);
   const [discount, setDiscount] = useState<number>(0);
   const [tCrossFeet, setTCrossFeet] = useState<number>(0);
@@ -44,7 +44,7 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
   // Preset rates mapper
   const handlePlateTypeChange = (type: string) => {
     setPlateType(type);
-    setCustomRate(15.30);
+    setCustomRate(0);
   };
 
   const calculatedTotalBill = customRate * quantity;
@@ -409,11 +409,11 @@ export default function SalesPage({ language = 'en' }: SalesPageProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Billed Rate (Rs)</label>
+                  <label className="block text-slate-500 font-semibold uppercase tracking-wider mb-1">Sale Rate (Rs)</label>
                   <input
                     type="number"
                     step="any"
-                    min="0.1"
+                    min="0"
                     required
                     value={customRate}
                     onChange={(e) => setCustomRate(parseFloat(e.target.value) || 0)}

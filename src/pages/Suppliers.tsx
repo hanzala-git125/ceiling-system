@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Users, Search, Plus, Trash2, Edit2, AlertCircle, CheckCircle, Landmark, X, ClipboardList, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { Users, Search, Plus, Trash2, Edit2, AlertCircle, CheckCircle, Landmark, X, ClipboardList, ArrowDownRight, ArrowUpRight, FileText } from 'lucide-react';
 import { db, getTodayStr, addSupplierLedgerEntry, getSupplierOutstandingBalance, deleteSupplierLedgerByReference, deleteSupplierLedgerEntry, refreshSuppliersFromApi, refreshSupplierLedgerFromApi } from '../utils/api';
 import { Supplier, SupplierLedgerEntry, Payment } from '../types';
 import { AppLanguage } from '../utils/i18n';
+import { downloadSupplierLedgerPdf } from '../utils/ledgerPdf';
 
 interface SuppliersPageProps {
   language?: AppLanguage;
@@ -318,7 +319,7 @@ export default function SuppliersPage({ language = 'en' }: SuppliersPageProps) {
                   <h4 className="font-display font-extrabold text-slate-800 text-sm leading-tight">{selectedSupplier.name}</h4>
                   <p className="text-[11px] text-slate-400 mt-1">Contact: {selectedSupplier.phone} | Address: {selectedSupplier.address}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className={`text-right rounded-xl border px-3 py-2 ${supplierOutstanding > 0 ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
                     <p className={`text-[10px] font-semibold uppercase tracking-wide ${supplierOutstanding > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                       {supplierOutstanding > 0 ? 'You need to pay' : 'Nothing pending'}
@@ -330,6 +331,13 @@ export default function SuppliersPage({ language = 'en' }: SuppliersPageProps) {
                       {supplierOutstanding > 0 ? 'Pay this amount to clear the supplier balance.' : 'This supplier account is fully settled.'}
                     </p>
                   </div>
+                  <button
+                    onClick={() => downloadSupplierLedgerPdf(selectedSupplier, selectedLedgerEntries, supplierOutstanding)}
+                    className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm"
+                  >
+                    <FileText size={13} />
+                    Download PDF
+                  </button>
                   <button
                     onClick={() => {
                       setPaymentAmount(0);

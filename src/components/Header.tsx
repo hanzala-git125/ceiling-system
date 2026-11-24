@@ -36,9 +36,9 @@ export default function Header({ currentTab, currentUser, onMenuToggle, language
       case 'customers':
         return getLanguageText(language, 'customerLedgersAndDirectory');
       case 'sales':
-        return getLanguageText(language, 'salesOperations');
+        return getLanguageText(language, 'salesInvoices');
       case 'invoices':
-        return getLanguageText(language, 'invoiceHistoryAndPrinting');
+        return getLanguageText(language, 'salesInvoices');
       case 'reports':
         return getLanguageText(language, 'analyticsAndProductionReports');
       default:

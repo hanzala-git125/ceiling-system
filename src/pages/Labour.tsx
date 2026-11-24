@@ -98,10 +98,10 @@ export default function LabourPage({ language = 'en' }: LabourPageProps) {
 
     const updatedOperators = operators.map((item) => {
       if (item.id !== entry.operatorId) return item;
-      if (entry.type === 'earning') {
-        return { ...item, balanceDue: Math.max(0, item.balanceDue - entry.amount) };
-      }
-      return item;
+      const balanceDue = updatedLedger
+        .filter((ledgerEntry) => ledgerEntry.operatorId === item.id)
+        .reduce((balance, ledgerEntry) => balance + (ledgerEntry.type === 'earning' ? ledgerEntry.amount : -ledgerEntry.amount), 0);
+      return { ...item, balanceDue: Math.max(0, balanceDue) };
     });
     db.saveOperators(updatedOperators);
     setOperators(updatedOperators);
@@ -172,13 +172,23 @@ export default function LabourPage({ language = 'en' }: LabourPageProps) {
   // Calculate total plates per operator across all stages regardless of when they were created
   const getOperatorPlatesTotals = useMemo(() => {
     const totals: Record<string, { totalPlates: number; stageCounts: Record<string, number> }> = {};
+    const outstandingBalances: Record<string, number> = {};
     operators.forEach((op) => {
       totals[op.id] = { totalPlates: 0, stageCounts: { wet: 0, dry: 0, final: 0, waste: 0 } };
+      outstandingBalances[op.id] = 0;
     });
     ledger.forEach((entry) => {
-      if (entry.type === 'earning' && totals[entry.operatorId]) {
+      if (!totals[entry.operatorId]) return;
+
+      if (entry.type === 'earning') {
+        outstandingBalances[entry.operatorId] += entry.amount;
         totals[entry.operatorId].totalPlates += entry.plates;
         totals[entry.operatorId].stageCounts[entry.stage] = (totals[entry.operatorId].stageCounts[entry.stage] || 0) + entry.plates;
+      } else {
+        outstandingBalances[entry.operatorId] = Math.max(0, outstandingBalances[entry.operatorId] - entry.amount);
+        if (outstandingBalances[entry.operatorId] === 0) {
+          totals[entry.operatorId] = { totalPlates: 0, stageCounts: { wet: 0, dry: 0, final: 0, waste: 0 } };
+        }
       }
     });
     return totals;
@@ -231,26 +241,28 @@ export default function LabourPage({ language = 'en' }: LabourPageProps) {
           </div>
 
           <div className="space-y-3">
-            {filteredOperators.map((operator) => (
-              <div key={operator.id} className="border border-slate-100 rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {filteredOperators.map((operator) => {
+              const hasUnpaidBalance = operator.balanceDue > 0;
+              return (
+              <div key={operator.id} className={`border rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 ${hasUnpaidBalance ? 'border-rose-200 bg-rose-50/40' : 'border-emerald-100 bg-emerald-50/30'}`}>
                 <div>
                   <div className="flex items-center gap-2">
-                    <Users size={14} className="text-indigo-600" />
+                    <Users size={14} className={hasUnpaidBalance ? 'text-rose-600' : 'text-emerald-600'} />
                     <p className="font-semibold text-slate-800">{operator.name}</p>
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">Stage: {stageOptions.find((item) => item.value === operator.stage)?.label}</p>
-                  <p className="text-[10px] text-slate-500">Rate: Rs {operator.ratePerPlate} / plate • Balance: Rs {operator.balanceDue}</p>
-                  <p className="text-[10px] text-emerald-600 font-semibold mt-1">Total Plates Created: {getOperatorPlatesTotals[operator.id]?.totalPlates.toLocaleString() || 0}</p>
+                  <p className={`text-[10px] font-semibold ${hasUnpaidBalance ? 'text-rose-600' : 'text-emerald-600'}`}>Rate: Rs {operator.ratePerPlate} / plate • Balance: Rs {operator.balanceDue}</p>
+                  <p className={`text-[10px] font-semibold mt-1 ${hasUnpaidBalance ? 'text-rose-600' : 'text-emerald-600'}`}>Total Plates Created: {getOperatorPlatesTotals[operator.id]?.totalPlates.toLocaleString() || 0}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => handleEdit(operator)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-50"><Edit2 size={14} /></button>
                   <button onClick={() => handleDelete(operator)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-50"><Trash2 size={14} /></button>
-                  <button onClick={() => handlePayment(operator)} className="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold flex items-center gap-1">
+                  <button onClick={() => handlePayment(operator)} className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1 ${hasUnpaidBalance ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'}`}>
                     <Wallet size={14} /> Pay
                   </button>
                 </div>
               </div>
-            ))}
+            );})}
           </div>
         </div>
       </div>

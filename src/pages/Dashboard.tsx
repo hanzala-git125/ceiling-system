@@ -36,19 +36,25 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
   const hdPaperTypes = db.getHdPaperTypes();
 
   const todayStr = getTodayStr();
+  const remainingWetStock = Math.max(0, wetProd.reduce((sum, item) => sum + item.wetPlatesProduced, 0) - dryProd.reduce((sum, item) => sum + item.wetPlatesReceived, 0) + dryProd.reduce((sum, item) => sum + (item.wetPlatesReturned || 0), 0));
+  const remainingDryStock = Math.max(0, dryProd.reduce((sum, item) => sum + item.dryPlatesProduced, 0) - finalProd.reduce((sum, item) => sum + item.dryPlatesReceived, 0));
+  const remainingFinalStock = Math.max(0, finalProd.reduce((sum, item) => sum + item.finalPlatesProduced, 0) - sales.reduce((sum, item) => sum + item.quantity, 0));
 
   // Calculations for TODAY
   const totalWetToday = wetProd
     .filter((w) => w.productionDate === todayStr)
     .reduce((sum, item) => sum + item.wetPlatesProduced, 0);
+  const totalWetQuantity = remainingWetStock;
 
   const totalDryToday = dryProd
     .filter((d) => d.date === todayStr)
     .reduce((sum, item) => sum + item.dryPlatesProduced, 0);
+  const totalDryQuantity = remainingDryStock;
 
   const totalFinalToday = finalProd
     .filter((f) => f.date === todayStr)
     .reduce((sum, item) => sum + item.finalPlatesProduced, 0);
+  const totalFinalQuantity = remainingFinalStock;
 
   // Current Stock Value: Sum of (quantity * costPerUnit)
   const currentStockValue = materials.reduce((sum, item) => sum + item.quantity * item.costPerUnit, 0);
@@ -92,10 +98,6 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
   const finalProducedToday = finalProd.filter((record) => record.date === todayStr).reduce((sum, record) => sum + record.finalPlatesProduced, 0);
   const wasteCostToday = finalProducedToday > 0 ? totalWasteToday * (materialCostToday / finalProducedToday) : 0;
   const labourCostToday = db.getLabourLedger().filter((entry) => entry.date === todayStr && entry.type === 'earning').reduce((sum, entry) => sum + (entry.plates > 0 ? entry.plates * (entry.ratePerPlate || 0) : entry.amount), 0);
-
-  const remainingWetStock = Math.max(0, wetProd.reduce((sum, item) => sum + item.wetPlatesProduced, 0) - dryProd.reduce((sum, item) => sum + item.wetPlatesReceived, 0));
-  const remainingDryStock = Math.max(0, dryProd.reduce((sum, item) => sum + item.dryPlatesProduced, 0) - finalProd.reduce((sum, item) => sum + item.dryPlatesReceived, 0));
-  const remainingFinalStock = Math.max(0, finalProd.reduce((sum, item) => sum + item.finalPlatesProduced, 0) - sales.reduce((sum, item) => sum + item.quantity, 0));
 
   // Profit / Loss Summary: (All-time or Today? Let's do today first, and show cumulative monthly summary too!)
   const netProfitToday = totalSalesToday - totalExpensesToday - materialCostToday - wasteCostToday - tCrossCostToday - wallAngleCostToday - labourCostToday;
@@ -224,6 +226,9 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
             <span className="text-2xl font-bold font-display text-slate-900">{totalWetToday.toLocaleString()}</span>
             <span className="text-xs text-slate-400 font-semibold uppercase">pcs</span>
           </div>
+          <p className="text-[11px] text-slate-500 mt-1">
+            Remaining quantity: <span className="font-medium text-slate-600">{totalWetQuantity.toLocaleString()} pcs</span>
+          </p>
           <p className="text-[10px] text-slate-400 mt-3 font-semibold flex items-center gap-1.5 uppercase tracking-wider">
             <TrendingUp size={12} className="text-emerald-500 shrink-0 animate-pulse" /> Molding Unit Log
           </p>
@@ -244,6 +249,9 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
             <span className="text-2xl font-bold font-display text-slate-900">{totalDryToday.toLocaleString()}</span>
             <span className="text-xs text-slate-400 font-semibold uppercase">pcs</span>
           </div>
+          <p className="text-[11px] text-slate-500 mt-1">
+            Remaining quantity: <span className="font-medium text-slate-600">{totalDryQuantity.toLocaleString()} pcs</span>
+          </p>
           <p className="text-[10px] text-slate-400 mt-3 font-semibold flex items-center gap-1.5 uppercase tracking-wider">
             <TrendingUp size={12} className="text-emerald-500 shrink-0" /> Drying Oven Checkout
           </p>
@@ -264,6 +272,9 @@ export default function Dashboard({ setCurrentTab, onViewInvoice, language = 'en
             <span className="text-2xl font-bold font-display text-slate-900">{totalFinalToday.toLocaleString()}</span>
             <span className="text-xs text-slate-400 font-semibold uppercase">pcs</span>
           </div>
+          <p className="text-[11px] text-slate-500 mt-1">
+            Remaining quantity: <span className="font-medium text-slate-600">{totalFinalQuantity.toLocaleString()} pcs</span>
+          </p>
           <p className="text-[10px] text-slate-400 mt-3 font-semibold flex items-center gap-1.5 uppercase tracking-wider">
             <TrendingUp size={12} className="text-emerald-500 shrink-0" /> Warehouse Completed
           </p>

@@ -203,7 +203,7 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
   const accessoryStockUsedCost = tCrossStockUsedCost + wallAngleStockUsedCost;
   const totalStockUsedCost = stockUsedCost + accessoryStockUsedCost;
 
-  const remainingWet = Math.max(0, totalWetProduced - totalWetReceivedToDry);
+  const remainingWet = Math.max(0, totalWetProduced - totalWetReceivedToDry + filteredDry.reduce((sum, record) => sum + (record.wetPlatesReturned || 0), 0));
   const remainingDry = Math.max(0, totalDryProduced - totalDryReceivedToFinal);
   const remainingFinal = Math.max(0, totalFinalProduced - soldQty);
 
@@ -345,6 +345,10 @@ export default function ReportsPage({ language = 'en' }: ReportsPageProps) {
           <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg">
             <p className="text-[9px] text-rose-800 font-bold uppercase tracking-wider">Stock Cost Used</p>
             <p className="font-mono text-sm font-extrabold text-rose-700 mt-1">{formatCurrency(totalStockUsedCost)}</p>
+          </div>
+          <div className="p-3 bg-cyan-50 border border-cyan-100 rounded-lg">
+            <p className="text-[9px] text-cyan-800 font-bold uppercase tracking-wider">Cost Per Plate</p>
+            <p className="font-mono text-sm font-extrabold text-cyan-700 mt-1">{formatCurrency(materialCostPerPlate)}</p>
           </div>
           <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
             <p className="text-[9px] text-amber-800 font-bold uppercase tracking-wider">Total Expenses</p>

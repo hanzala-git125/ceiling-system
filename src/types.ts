@@ -80,7 +80,8 @@ export interface DryProduction {
   date: string;
   wetPlatesReceived: number;
   dryPlatesProduced: number;
-  wastePlates: number; // Auto calculated: Received - Produced
+  wastePlates: number;
+  wetPlatesReturned?: number;
   notes?: string;
   panniTypeId?: string;
   panniType?: string;

@@ -11,7 +11,6 @@ import {
   Receipt,
   Users,
   ShoppingCart,
-  FileText,
   BarChart3,
   Landmark,
   LogOut,
@@ -51,8 +50,7 @@ export default function Sidebar({
     { id: 'labour', nameKey: 'labour', icon: Users },
     { id: 'customers', nameKey: 'customers', icon: Users },
     { id: 'suppliers', nameKey: 'suppliers', icon: Landmark },
-    { id: 'sales', nameKey: 'sales', icon: ShoppingCart },
-    { id: 'invoices', nameKey: 'invoices', icon: FileText },
+    { id: 'sales', nameKey: 'salesInvoices', icon: ShoppingCart },
     { id: 'reports', nameKey: 'reports', icon: BarChart3 },
   ];
 

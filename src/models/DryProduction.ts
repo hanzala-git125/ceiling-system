@@ -6,6 +6,7 @@ const DryProductionSchema = new mongoose.Schema({
   wetPlatesReceived: { type: Number, required: true },
   dryPlatesProduced: { type: Number, required: true },
   wastePlates: { type: Number, required: true },
+  wetPlatesReturned: { type: Number, default: 0 },
   notes: { type: String },
   panniTypeId: { type: String },
   panniType: { type: String },
